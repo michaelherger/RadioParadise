@@ -1,7 +1,6 @@
 package Plugins::RadioParadise::Plugin;
 
 # TODO:
-# - handle shuffle/repeat/crossfade states
 # - use $client->pluginData instead of cache?
 
 use strict;
@@ -63,7 +62,7 @@ sub nowPlayingInfoMenu {
 		$items = [{
 			name => $client->string('PLUGIN_RADIO_PARADISE_PSD'),
 			url  => \&_playSomethingDifferent,
-			nextWindow => 'nowPlaying'
+			nextWindow => 'parent'
 		}];
 	}
 	
@@ -137,7 +136,6 @@ sub _playSomethingDifferentSuccess {
 		
 		$msg = $client->string('JIVE_POPUP_NOW_PLAYING', $title);	
 	}
-	
 	
 	$cb->({
 		items => [{
