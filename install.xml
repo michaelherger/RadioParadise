@@ -1,0 +1,18 @@
+<?xml version='1.0' standalone='yes'?>
+<extension>
+	<name>PLUGIN_RADIO_PARADISE</name>
+	<creator>Michael Herger</creator>
+	<defaultState>enabled</defaultState>
+	<description>PLUGIN_RADIO_PARADISE_DESC</description>
+	<email>slim@herger.net</email>
+	<homepageURL>http://www.herger.net/RadioParadise</homepageURL>
+	<id>28ea6240-9c42-11e2-9e96-0800200c9a66</id>
+	<module>Plugins::RadioParadise::Plugin</module>
+	<targetApplication>
+		<id>SqueezeCenter</id>
+		<maxVersion>*</maxVersion>
+		<minVersion>7.5</minVersion>
+	</targetApplication>
+	<type>2</type>
+	<version>0.0.1</version>
+</extension>

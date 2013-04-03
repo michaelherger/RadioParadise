@@ -1,0 +1,12 @@
+PLUGIN_RADIO_PARADISE
+	EN	Radio Paradise
+
+PLUGIN_RADIO_PARADISE_DESC
+	DE	Unterstützung für die "Play Something Different" Funktion von Radio Paradise.
+	EN	Allow access to Radio Paradise's "Play Something Different" feature.
+	
+PLUGIN_RADIO_PARADISE_PSD
+	EN	Play Something Different (Radio Paradise)
+	
+PLUGIN_RADIO_PARADISE_PSD_FAILED
+	EN	Failed to play something different...
