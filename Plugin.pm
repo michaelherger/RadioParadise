@@ -1,7 +1,7 @@
 package Plugins::RadioParadise::Plugin;
 
 # TODO:
-# - use $client->pluginData instead of cache?
+# - parse headers for icy-name =~ /radio paradise/ to not rely on shoutcast IDs
 
 use strict;
 
@@ -11,7 +11,6 @@ use JSON::XS::VersionOneAndTwo;
 
 use Slim::Menu::TrackInfo;
 use Slim::Networking::SimpleAsyncHTTP;
-use Slim::Utils::Cache;
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 
@@ -44,7 +43,8 @@ sub initPlugin {
 		match => $songUrlRegex,
 		func  => sub {
 			my ( $client, $url ) = @_;
-			return Slim::Utils::Cache->new->get('rp_' . $url);
+			my $meta = $client->master->pluginData('rp_psd_trackinfo');
+			return ($meta && $meta->{url} eq $url) ? $meta : undef;
 		},
 	);
 }
@@ -112,12 +112,13 @@ sub _playSomethingDifferentSuccess {
 	}
 	else {
 		my $title = $result->{title} . ' - ' . $result->{artist};
+		$result->{cover} =~ s/\/m\//\/l\// if $result->{cover};
 
 		my $songIndex = Slim::Player::Source::streamingSongIndex($client) || 0;
 		
 		# keep track of old settings while we change them
 		my $master = $client->master;
-		$master->pluginData('prefs' => {
+		$master->pluginData('rp_psd_prefs' => {
 			repeat => Slim::Player::Playlist::repeat($master),
 			transitionType => $prefs->client($master)->get('transitionType') || 0,
 			transitionDuration => $prefs->client($master)->get('transitionDuration') || 2,
@@ -127,10 +128,10 @@ sub _playSomethingDifferentSuccess {
 		$prefs->client($master)->set('transitionType', 5);
 		$prefs->client($master)->set('transitionDuration', 2);
 		
-		Slim::Utils::Cache->new->set('rp_' . $result->{url}, $result);
+		$master->pluginData('rp_psd_trackinfo' => $result);
 		Slim::Control::Request::executeRequest( $client, [ 'playlist', 'insert', $result->{url}, $title ] );
 		Slim::Control::Request::executeRequest( $client, [ 'playlist', 'move', $songIndex + 1, $songIndex ] );
-		Slim::Control::Request::executeRequest( $client, [ 'playlist', 'jump', $songIndex, 0, $result->{cue} || 0 ] );
+		Slim::Control::Request::executeRequest( $client, [ 'playlist', 'jump', $songIndex, $result->{fade_in} || 0, $result->{cue} || 0 ] );
 		
 		Slim::Control::Request::subscribe(\&_playingElseDone, [['playlist'], ['newsong']], $client);
 		
@@ -156,20 +157,22 @@ sub _playingElseDone {
 
 	Slim::Control::Request::unsubscribe(\&_playingElseDone, $client);
 	
-	my $oldPrefs = $client->pluginData('prefs');
+	my $oldPrefs = $client->pluginData('rp_psd_prefs');
 		
 	Slim::Player::Playlist::repeat($client, $oldPrefs->{repeat});
 	$prefs->client($client)->set('transitionType', $oldPrefs->{transitionType});
 	$prefs->client($client)->set('transitionDuration', $oldPrefs->{transitionDuration});
 	
-	$client->pluginData('prefs' => undef);
+	$client->pluginData('rp_psd_prefs' => undef);
 	
 	my @urls = map { $_->url } grep { blessed $_ && $_->url =~ $songUrlRegex } @{ Slim::Player::Playlist::playList($client) };
 
 	foreach (@urls) {
+		# XXX - something's wrong with deleteitem: the items would be back after a server restart
 		$client->execute([ 'playlist', 'deleteitem', $_ ]);
 	}
-	
+
+	$client->master->pluginData('rp_psd_trackinfo' => undef);
 }
 
 sub _pluginDataFor {
