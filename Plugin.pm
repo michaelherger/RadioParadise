@@ -24,9 +24,9 @@ my $prefs = preferences('server');
 
 use constant PSD_URL => 'http://radioparadise.com/ajax_replace_sb.php?uid=';
 
-# s13606 is the TuneIn ID for RP
-# XXX - how to better deal with shoutcast URLs?
-my $radioUrlRegex = qr/(?:\.radioparadise\.com|id=s13606|shoutcast\.com.*id=(785339|101265|1595911|674983|308768|1604072|1646896|1695633|856611))/i;
+# s13606 is the TuneIn ID for RP - Shoutcast URLs are recognized by the cover URL. Hopefully.
+#my $radioUrlRegex = qr/(?:\.radioparadise\.com|id=s13606|shoutcast\.com.*id=(785339|101265|1595911|674983|308768|1604072|1646896|1695633|856611))/i;
+my $radioUrlRegex = qr/(?:\.radioparadise\.com|id=s13606)/i;
 my $songUrlRegex  = qr/radioparadise\.com\/temp\/[a-z0-9]+\.mp3/i;
 
 sub initPlugin {
@@ -54,8 +54,9 @@ sub nowPlayingInfoMenu {
 	
 	my $items = [];
 
-	# only continue if we're playing RP
-	return unless $url =~ $radioUrlRegex;
+	# only continue if we're playing RP (either URL matches, or the cover url is pointing to radioparadise.com)
+	return if $remoteMeta && $remoteMeta->{duration};
+	return unless $url =~ $radioUrlRegex || ($remoteMeta && $remoteMeta->{cover} && $remoteMeta->{cover} =~ /radioparadise\.com/);
 
 	# add item to controll the current playlist
 	if ( $client->playingSong && $client->playingSong->track->id == $track->id ) {
