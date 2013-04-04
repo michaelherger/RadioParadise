@@ -101,7 +101,7 @@ sub _playSomethingDifferentSuccess {
 	my $result = $http->content;
 	
 	# XXX - clean up JSON until this is fixed on the server side
-	$result =~ s/\s*([\{,])\s*(\w+)\s*:\s*'(.*?)'/$1"$2":"$3"/g; 
+#	$result =~ s/\s*([\{,])\s*(\w+)\s*:\s*'(.*?)'/$1"$2":"$3"/g; 
 
 	$result = eval { from_json( $result ) };
 	
