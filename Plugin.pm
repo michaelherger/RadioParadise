@@ -47,6 +47,16 @@ sub initPlugin {
 			return ($meta && $meta->{url} eq $url) ? $meta : undef;
 		},
 	);
+
+	# don't know yet how to deal with initially cleaning the client's playlist from temporary tracks on mysb.com - if ever this is going there anyway :-)
+	return if main::SLIM_SERVICE;
+	
+	Slim::Control::Request::subscribe(
+		sub {
+			$class->cleanupPlaylist($_[0]->client, 1);
+		},
+		[['client'], ['new']]
+	);
 }
 
 sub nowPlayingInfoMenu {
@@ -55,7 +65,6 @@ sub nowPlayingInfoMenu {
 	my $items = [];
 
 	# only continue if we're playing RP (either URL matches, or the cover url is pointing to radioparadise.com)
-	return if $remoteMeta && $remoteMeta->{duration};
 	return unless $url =~ $radioUrlRegex || ($remoteMeta && $remoteMeta->{cover} && $remoteMeta->{cover} =~ /radioparadise\.com/);
 
 	# add item to controll the current playlist
@@ -103,6 +112,8 @@ sub _playSomethingDifferentSuccess {
 	# XXX - clean up JSON until this is fixed on the server side
 #	$result =~ s/\s*([\{,])\s*(\w+)\s*:\s*'(.*?)'/$1"$2":"$3"/g; 
 
+	main::DEBUGLOG && $log->debug("Got a new track: $result");
+
 	$result = eval { from_json( $result ) };
 	
 	my $msg;
@@ -149,31 +160,44 @@ sub _playSomethingDifferentSuccess {
 
 sub _playingElseDone {
 	my $request = shift;
-	my $client  = $request->client->master;
+	__PACKAGE__->cleanupPlaylist($request->client);
+}
 
-	# don't remove temporary track as long as it's playing
-	if ( $client->playingSong && (my $track = $client->playingSong->track) ) {
-		return if $track->url =~ $songUrlRegex;
+sub cleanupPlaylist {
+	my ( $class, $client, $force ) = @_;
+	$client = $client->master;
+
+	my $current = ($client->playingSong->track && $client->playingSong->track->url) || '';
+
+	# restore some parameters when we're no longer playing any temporary track
+	if ( $current !~ $songUrlRegex ) {
+		main::DEBUGLOG && $log->debug("We're done playing something different. Back to the main stream.");
+		Slim::Control::Request::unsubscribe(\&_playingElseDone, $client);
+		$client->master->pluginData('rp_psd_trackinfo' => undef);
+
+		my $oldPrefs = $client->pluginData('rp_psd_prefs');
+
+		if ($oldPrefs) {
+			Slim::Player::Playlist::repeat($client, $oldPrefs->{repeat});
+			$prefs->client($client)->set('transitionType', $oldPrefs->{transitionType});
+			$prefs->client($client)->set('transitionDuration', $oldPrefs->{transitionDuration});
+
+			$client->pluginData('rp_psd_prefs' => undef);
+		}
 	}
-
-	Slim::Control::Request::unsubscribe(\&_playingElseDone, $client);
 	
-	my $oldPrefs = $client->pluginData('rp_psd_prefs');
+	my $x = 0;
+	foreach my $track (@{ Slim::Player::Playlist::playList($client) }) {
+		my $url = (blessed $track ? $track->url : $track) || '';
 		
-	Slim::Player::Playlist::repeat($client, $oldPrefs->{repeat});
-	$prefs->client($client)->set('transitionType', $oldPrefs->{transitionType});
-	$prefs->client($client)->set('transitionDuration', $oldPrefs->{transitionDuration});
-	
-	$client->pluginData('rp_psd_prefs' => undef);
-	
-	my @urls = map { $_->url } grep { blessed $_ && $_->url =~ $songUrlRegex } @{ Slim::Player::Playlist::playList($client) };
-
-	foreach (@urls) {
-		# XXX - something's wrong with deleteitem: the items would be back after a server restart
-		$client->execute([ 'playlist', 'deleteitem', $_ ]);
+		# remove temporary track, unless it's still playing
+		if ( $force || ($current ne $url && $url =~ $songUrlRegex) ) {
+			$client->execute([ 'playlist', 'delete', $x ]);
+		}
+		else {
+			$x++;
+		}
 	}
-
-	$client->master->pluginData('rp_psd_trackinfo' => undef);
 }
 
 sub _pluginDataFor {
