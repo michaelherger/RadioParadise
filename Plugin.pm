@@ -33,6 +33,28 @@ sub initPlugin {
 	my $class = shift;
 
 	$VERSION = $class->_pluginDataFor('version');
+	
+	# try to load custom artwork handler - requires recent LMS 7.8 with new image proxy
+	eval {
+		require Slim::Web::ImageProxy;
+		
+		Slim::Web::ImageProxy->registerHandler(
+			match => qr/radioparadise\.com\/graphics\/covers\/[sml]\/.*/,
+			func  => sub {
+				my ($url, $spec) = @_;
+	
+				my $size = Slim::Web::ImageProxy->getRightSize($spec, {
+					70  => 's',
+					160 => 'm',
+					300 => 'l',
+				}) || 'l';
+				$url =~ s/\/[sml]\//\/$size\//;
+				
+				return $url;
+			},
+		);
+		main::DEBUGLOG && $log->debug("Successfully registered image proxy for Radio Paradise artwork");
+	};
 
 	Slim::Menu::TrackInfo->registerInfoProvider( radioparadise => (
 		isa => 'top',
@@ -167,7 +189,7 @@ sub cleanupPlaylist {
 	my ( $class, $client, $force ) = @_;
 	$client = $client->master;
 
-	my $current = ($client->playingSong->track && $client->playingSong->track->url) || '';
+	my $current = ($client->playingSong && $client->playingSong->track && $client->playingSong->track->url) || '';
 
 	# restore some parameters when we're no longer playing any temporary track
 	if ( $current !~ $songUrlRegex ) {
@@ -191,7 +213,7 @@ sub cleanupPlaylist {
 		my $url = (blessed $track ? $track->url : $track) || '';
 		
 		# remove temporary track, unless it's still playing
-		if ( $force || ($current ne $url && $url =~ $songUrlRegex) ) {
+		if ( ($force || $current ne $url) && $url =~ $songUrlRegex ) {
 			$client->execute([ 'playlist', 'delete', $x ]);
 		}
 		else {
