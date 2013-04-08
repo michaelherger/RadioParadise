@@ -1,6 +1,7 @@
 package Plugins::RadioParadise::Plugin;
 
 # TODO:
+# - fade stream out before starting different track?
 # - parse headers for icy-name =~ /radio paradise/ to not rely on shoutcast IDs
 
 use strict;
@@ -23,10 +24,11 @@ my $log = Slim::Utils::Log->addLogCategory( {
 my $prefs = preferences('server');
 
 use constant PSD_URL => 'http://radioparadise.com/ajax_replace_sb.php?uid=';
+use constant DEFAULT_ARTWORK => 'http://www.radioparadise.com/graphics/metadata_2.jpg';
 
 # s13606 is the TuneIn ID for RP - Shoutcast URLs are recognized by the cover URL. Hopefully.
 #my $radioUrlRegex = qr/(?:\.radioparadise\.com|id=s13606|shoutcast\.com.*id=(785339|101265|1595911|674983|308768|1604072|1646896|1695633|856611))/i;
-my $radioUrlRegex = qr/(?:\.radioparadise\.com|id=s13606)/i;
+my $radioUrlRegex = qr/(?:\.radioparadise\.com|id=s13606|radio_paradise)/i;
 my $songUrlRegex  = qr/radioparadise\.com\/temp\/[a-z0-9]+\.mp3/i;
 
 sub initPlugin {
@@ -130,11 +132,13 @@ sub _playSomethingDifferentSuccess {
 	my $cb     = $http->params('cb');
 
 	my $result = $http->content;
-	
-	# XXX - clean up JSON until this is fixed on the server side
-#	$result =~ s/\s*([\{,])\s*(\w+)\s*:\s*'(.*?)'/$1"$2":"$3"/g; 
+
+	# sometimes there's some invalid escaping...
+	$result =~ s/\\(['])/$1/g;
 
 	main::DEBUGLOG && $log->debug("Got a new track: $result");
+
+	$client = $client->master;
 
 	$result = eval { from_json( $result ) };
 	
@@ -146,23 +150,28 @@ sub _playSomethingDifferentSuccess {
 	}
 	else {
 		my $title = $result->{title} . ' - ' . $result->{artist};
+		
+		# request highest resolution artwork
 		$result->{cover} =~ s/\/m\//\/l\// if $result->{cover};
+
+		# replace default "no artwork" placeholder
+		$result->{cover} = DEFAULT_ARTWORK if $result->{cover} =~ m|/0\.jpg$|;
 
 		my $songIndex = Slim::Player::Source::streamingSongIndex($client) || 0;
 		
 		# keep track of old settings while we change them
-		my $master = $client->master;
-		$master->pluginData('rp_psd_prefs' => {
-			repeat => Slim::Player::Playlist::repeat($master),
-			transitionType => $prefs->client($master)->get('transitionType') || 0,
-			transitionDuration => $prefs->client($master)->get('transitionDuration') || 2,
+		my $cprefs = $prefs->client($client);
+		$client->pluginData('rp_psd_prefs' => {
+			repeat => Slim::Player::Playlist::repeat($client),
+			transitionType => $cprefs->get('transitionType') || 0,
+			transitionDuration => $cprefs->get('transitionDuration') || 2,
 		});
 		
-		Slim::Player::Playlist::repeat($master, 0);
-		$prefs->client($master)->set('transitionType', 5);
-		$prefs->client($master)->set('transitionDuration', 2);
+		Slim::Player::Playlist::repeat($client, 0);
+		$cprefs->set('transitionType', 4);
+		$cprefs->set('transitionDuration', 2);
 		
-		$master->pluginData('rp_psd_trackinfo' => $result);
+		$client->pluginData('rp_psd_trackinfo' => $result);
 		Slim::Control::Request::executeRequest( $client, [ 'playlist', 'insert', $result->{url}, $title ] );
 		Slim::Control::Request::executeRequest( $client, [ 'playlist', 'move', $songIndex + 1, $songIndex ] );
 		Slim::Control::Request::executeRequest( $client, [ 'playlist', 'jump', $songIndex, $result->{fade_in} || 0, $result->{cue} || 0 ] );
@@ -192,10 +201,10 @@ sub cleanupPlaylist {
 	my $current = ($client->playingSong && $client->playingSong->track && $client->playingSong->track->url) || '';
 
 	# restore some parameters when we're no longer playing any temporary track
-	if ( $current !~ $songUrlRegex ) {
-		main::DEBUGLOG && $log->debug("We're done playing something different. Back to the main stream.");
+	if ( $force || $current !~ $songUrlRegex ) {
+		!$force && main::DEBUGLOG && $log->debug("We're done playing something different. Back to the main stream.");
 		Slim::Control::Request::unsubscribe(\&_playingElseDone, $client);
-		$client->master->pluginData('rp_psd_trackinfo' => undef);
+		$client->pluginData('rp_psd_trackinfo' => undef);
 
 		my $oldPrefs = $client->pluginData('rp_psd_prefs');
 
@@ -219,6 +228,18 @@ sub cleanupPlaylist {
 		else {
 			$x++;
 		}
+	}
+}
+
+sub shutdownPlugin {
+	my $class = shift;
+	
+	return if main::SLIM_SERVICE;
+	
+	main::DEBUGLOG && $log->debug('Resetting all Radio Paradise custom streams...');
+	
+	foreach (Slim::Player::Client::clients()) {
+		$class->cleanupPlaylist($_, 1);
 	}
 }
 
