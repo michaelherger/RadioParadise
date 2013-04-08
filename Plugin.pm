@@ -61,7 +61,7 @@ sub initPlugin {
 		main::DEBUGLOG && $log->debug("Successfully registered image proxy for Radio Paradise artwork");
 		
 		}
-	};
+	} if $prefs->get('useLocalImageproxy');
 
 	Slim::Menu::TrackInfo->registerInfoProvider( radioparadise => (
 		isa => 'top',
