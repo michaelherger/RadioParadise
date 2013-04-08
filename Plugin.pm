@@ -40,6 +40,9 @@ sub initPlugin {
 	eval {
 		require Slim::Web::ImageProxy;
 		
+		# XXX - some might not have updated their 7.8 yet...
+		if ( UNIVERSAL::can('Slim::Web::ImageProxy', 'getRightSize') ) {
+		
 		Slim::Web::ImageProxy->registerHandler(
 			match => qr/radioparadise\.com\/graphics\/covers\/[sml]\/.*/,
 			func  => sub {
@@ -56,6 +59,8 @@ sub initPlugin {
 			},
 		);
 		main::DEBUGLOG && $log->debug("Successfully registered image proxy for Radio Paradise artwork");
+		
+		}
 	};
 
 	Slim::Menu::TrackInfo->registerInfoProvider( radioparadise => (
