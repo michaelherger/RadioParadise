@@ -174,7 +174,13 @@ sub _playSomethingDifferentSuccess {
 		$client->pluginData('rp_psd_trackinfo' => $result);
 		Slim::Control::Request::executeRequest( $client, [ 'playlist', 'insert', $result->{url}, $title ] );
 		Slim::Control::Request::executeRequest( $client, [ 'playlist', 'move', $songIndex + 1, $songIndex ] );
-		Slim::Control::Request::executeRequest( $client, [ 'playlist', 'jump', $songIndex, $result->{fade_in} || 0, $result->{cue} || 0 ] );
+		Slim::Control::Request::executeRequest( $client, [ 
+			'playlist', 'jump', 
+			$songIndex, 
+			$result->{fade_in} || 0, 
+			0, 
+			{ timeOffset => $result->{cue} } || 0
+		] );
 		
 		Slim::Control::Request::subscribe(\&_playingElseDone, [['playlist'], ['newsong']], $client);
 		
