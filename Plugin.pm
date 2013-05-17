@@ -9,11 +9,13 @@ use strict;
 use vars qw($VERSION);
 use Digest::MD5 qw(md5_hex);
 use JSON::XS::VersionOneAndTwo;
+use Scalar::Util qw(blessed);
 
 use Slim::Menu::TrackInfo;
 use Slim::Networking::SimpleAsyncHTTP;
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
+use Slim::Utils::Timers;
 
 my $log = Slim::Utils::Log->addLogCategory( {
 	category     => 'plugin.radioparadise',
@@ -23,45 +25,22 @@ my $log = Slim::Utils::Log->addLogCategory( {
 
 my $prefs = preferences('server');
 
-use constant PSD_URL => 'http://radioparadise.com/ajax_replace_sb.php?uid=';
+use constant PSD_URL         => 'http://radioparadise.com/ajax_replace_sb.php?uid=';
 use constant DEFAULT_ARTWORK => 'http://www.radioparadise.com/graphics/metadata_2.jpg';
+use constant HD_URL          => 'http://www.radioparadise.com/ajax_image.php?width=640';
+use constant HD_INTERVAL     => 20;
 
 # s13606 is the TuneIn ID for RP - Shoutcast URLs are recognized by the cover URL. Hopefully.
 #my $radioUrlRegex = qr/(?:\.radioparadise\.com|id=s13606|shoutcast\.com.*id=(785339|101265|1595911|674983|308768|1604072|1646896|1695633|856611))/i;
 my $radioUrlRegex = qr/(?:\.radioparadise\.com|id=s13606|radio_paradise)/i;
 my $songUrlRegex  = qr/radioparadise\.com\/temp\/[a-z0-9]+\.mp3/i;
+my $songImgRegex  = qr/radioparadise\.com\/graphics\/covers\/[sml]\/.*/;
+my $hdImgRegex    = qr/radioparadise\.com.*\/graphics\/tv_img/;
 
 sub initPlugin {
 	my $class = shift;
 
 	$VERSION = $class->_pluginDataFor('version');
-	
-	# try to load custom artwork handler - requires recent LMS 7.8 with new image proxy
-	eval {
-		require Slim::Web::ImageProxy;
-		
-		# XXX - some might not have updated their 7.8 yet...
-		if ( UNIVERSAL::can('Slim::Web::ImageProxy', 'getRightSize') ) {
-		
-		Slim::Web::ImageProxy->registerHandler(
-			match => qr/radioparadise\.com\/graphics\/covers\/[sml]\/.*/,
-			func  => sub {
-				my ($url, $spec) = @_;
-	
-				my $size = Slim::Web::ImageProxy->getRightSize($spec, {
-					70  => 's',
-					160 => 'm',
-					300 => 'l',
-				}) || 'l';
-				$url =~ s/\/[sml]\//\/$size\//;
-				
-				return $url;
-			},
-		);
-		main::DEBUGLOG && $log->debug("Successfully registered image proxy for Radio Paradise artwork");
-		
-		}
-	} if $prefs->get('useLocalImageproxy');
 
 	Slim::Menu::TrackInfo->registerInfoProvider( radioparadise => (
 		isa => 'top',
@@ -86,6 +65,49 @@ sub initPlugin {
 		},
 		[['client'], ['new']]
 	);
+	
+	# try to load custom artwork handler - requires recent LMS 7.8 with new image proxy
+	eval {
+		require Slim::Web::ImageProxy;
+		
+		# XXX - some might not have updated their 7.8 yet...
+		if ( UNIVERSAL::can('Slim::Web::ImageProxy', 'getRightSize') ) {
+		
+		Slim::Web::ImageProxy->registerHandler(
+			match => $songImgRegex,
+			func  => sub {
+				my ($url, $spec) = @_;
+	
+				my $size = Slim::Web::ImageProxy->getRightSize($spec, {
+					70  => 's',
+					160 => 'm',
+					300 => 'l',
+				}) || 'l';
+				$url =~ s/\/[sml]\//\/$size\//;
+				
+				return $url;
+			},
+		);
+		
+		Slim::Web::ImageProxy->registerHandler(
+			match => $hdImgRegex,
+			func  => sub {
+				my ($url, $spec) = @_;
+	
+				my $size = Slim::Web::ImageProxy->getRightSize($spec, {
+# don't use smaller than 640, as we pre-cache 640 anyway
+#					320  => '/320',
+					640  => '/640',
+				}) || '';
+				$url =~ s/\/640\//$size\//;
+				return $url;
+			},
+		);
+
+		main::DEBUGLOG && $log->debug("Successfully registered image proxy for Radio Paradise artwork");
+		
+		}
+	} if $prefs->get('useLocalImageproxy');
 }
 
 sub nowPlayingInfoMenu {
@@ -97,19 +119,65 @@ sub nowPlayingInfoMenu {
 	return unless $url =~ $radioUrlRegex || ($remoteMeta && $remoteMeta->{cover} && $remoteMeta->{cover} =~ /radioparadise\.com/);
 
 	# add item to controll the current playlist
-	if ( $client->playingSong && $client->playingSong->track->id == $track->id ) {
+	my $song = $client->master->playingSong;
+	if ( $song && $song->track->id == $track->id ) {
 		$items = [{
 			name => $client->string('PLUGIN_RADIO_PARADISE_PSD'),
 			url  => \&_playSomethingDifferent,
 			nextWindow => 'parent'
 		}];
+		
+		if ( my $artworkUrl = $client->master->pluginData('rpHD') ) {
+			push @$items, {
+				name => $client->string('PLUGIN_RADIO_PARADISE_DISABLE_HD'),
+				url  => sub {
+					my ($client, $cb) = @_;
+
+					Slim::Utils::Timers::killTimers(undef, \&_getHDImage);
+				
+					Slim::Utils::Cache->new()->set( "remote_image_$url", $artworkUrl, 3600 );
+					$song->pluginData( httpCover => $artworkUrl );
+					$client->master->pluginData( rpHD => '' );
+				
+					Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
+
+					$cb->({
+						items => [{
+							name => $client->string('PLUGIN_RADIO_PARADISE_HD_DISABLED'),
+							showBriefly => 1,
+						}]
+					});
+				},
+				nextWindow => 'parent'
+			}
+		}
+		else {
+			push @$items, {
+				name => $client->string('PLUGIN_RADIO_PARADISE_ENABLE_HD'),
+				url  => sub {
+					my ($client, $cb) = @_;
+
+					$client->master->pluginData( rpHD => $remoteMeta->{cover} );
+					
+					_getHDImage($url, $client);
+
+					$cb->({
+						items => [{
+							name => $client->string('PLUGIN_RADIO_PARADISE_HD_ENABLED'),
+							showBriefly => 1,
+						}]
+					});
+				},
+				nextWindow => 'parent'
+			}
+		}
 	}
 	
 	return $items;
 }
 
 sub _playSomethingDifferent {
-	my ($client, $cb, $args) = @_;
+	my ($client, $cb) = @_;
 	
 	my $http = Slim::Networking::SimpleAsyncHTTP->new(
 		\&_playSomethingDifferentSuccess,
@@ -205,6 +273,70 @@ sub _playingElseDone {
 	__PACKAGE__->cleanupPlaylist($request->client);
 }
 
+sub _getHDImage {
+	my ($url, $client) = @_;
+	
+	Slim::Utils::Timers::killTimers(undef, \&_getHDImage);
+	
+	return unless $client->master->pluginData('rpHD');
+	
+	Slim::Networking::SimpleAsyncHTTP->new(
+		\&_gotHDImageResponse,
+		\&_gotHDImageResponse,
+		{
+			timeout => 5,
+			client  => $client,
+			url     => $url,
+		}
+	)->get(HD_URL);
+}
+
+sub _gotHDImageResponse {
+	my $http   = shift;
+	my $client = $http->params('client');
+#	my $url    = $http->params('url');
+
+	my $artworkUrl = $http->content;
+	if ($artworkUrl && $artworkUrl =~ /^http/) {
+		$artworkUrl =~ s/ .*//g;
+		$artworkUrl =~ s/\n//g;
+
+		main::DEBUGLOG && $log->debug("Got new HD artwork url: $artworkUrl");
+		
+		my $http = Slim::Networking::SimpleAsyncHTTP->new(
+			sub {
+				my $http = shift;
+
+				if ($http->code == 200) {
+					if ( my $song = $client->playingSong() ) {
+
+						# keep track of track artwork
+						my $meta = Slim::Player::Protocols::HTTP->getMetadataFor($client, $song->track->url, 1);
+						if ( $meta && $meta->{cover} && $meta->{cover} =~ $songImgRegex ) {
+							main::DEBUGLOG && $log->debug('Track info changed - keep track of cover art URL: ' . $meta->{cover});
+							$client->master->pluginData( rpHD => $meta->{cover} );
+						}
+
+						Slim::Utils::Cache->new()->set( "remote_image_" . $song->track->url, $artworkUrl, 3600 );
+						$song->pluginData( httpCover => $artworkUrl );
+						Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
+						
+						main::DEBUGLOG && $log->debug("Pre-cached new HD artwork for $artworkUrl");
+					}
+				}
+			},
+			sub {},
+			{
+				timeout => 5,
+				cache   => 1,
+			}
+		)->get($artworkUrl);
+	}
+
+	Slim::Utils::Timers::killTimers(undef, \&_getHDImage);
+	Slim::Utils::Timers::setTimer(undef, time + HD_INTERVAL, \&_getHDImage, $client);
+}
+
 sub cleanupPlaylist {
 	my ( $class, $client, $force ) = @_;
 	$client = $client->master;
@@ -266,6 +398,5 @@ sub _pluginDataFor {
 
 	return undef;
 }
-
 
 1;

@@ -9,4 +9,21 @@ PLUGIN_RADIO_PARADISE_PSD
 	EN	Play Something Different (Radio Paradise)
 	
 PLUGIN_RADIO_PARADISE_PSD_FAILED
+	DE	"Play Something Different" fehlgeschlagen...
 	EN	Failed to play something different...
+
+PLUGIN_RADIO_PARADISE_ENABLE_HD
+	DE	Radio Paradise HD aktivieren
+	EN	Enable Radio Paradise HD images
+	
+PLUGIN_RADIO_PARADISE_DISABLE_HD
+	DE	Radio Paradise HD deaktivieren
+	EN	Disable Radio Paradise HD images
+	
+PLUGIN_RADIO_PARADISE_HD_ENABLED
+	DE	Radio Paradise HD aktiviert
+	EN	Radio Paradise HD enabled
+
+PLUGIN_RADIO_PARADISE_HD_DISABLED
+	DE	Radio Paradise HD deaktiviert
+	EN	Radio Paradise HD disabled
