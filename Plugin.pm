@@ -28,7 +28,7 @@ my $prefs = preferences('server');
 use constant PSD_URL         => 'http://radioparadise.com/ajax_replace_sb.php?uid=';
 use constant DEFAULT_ARTWORK => 'http://www.radioparadise.com/graphics/metadata_2.jpg';
 use constant HD_URL          => 'http://www.radioparadise.com/ajax_image.php?width=640';
-use constant HD_INTERVAL     => 20;
+use constant HD_INTERVAL     => 15;
 
 # s13606 is the TuneIn ID for RP - Shoutcast URLs are recognized by the cover URL. Hopefully.
 #my $radioUrlRegex = qr/(?:\.radioparadise\.com|id=s13606|shoutcast\.com.*id=(785339|101265|1595911|674983|308768|1604072|1646896|1695633|856611))/i;
@@ -36,6 +36,9 @@ my $radioUrlRegex = qr/(?:\.radioparadise\.com|id=s13606|radio_paradise)/i;
 my $songUrlRegex  = qr/radioparadise\.com\/temp\/[a-z0-9]+\.mp3/i;
 my $songImgRegex  = qr/radioparadise\.com\/graphics\/covers\/[sml]\/.*/;
 my $hdImgRegex    = qr/radioparadise\.com.*\/graphics\/tv_img/;
+
+my $timer;
+my $useLocalImageproxy;
 
 sub initPlugin {
 	my $class = shift;
@@ -70,9 +73,6 @@ sub initPlugin {
 	eval {
 		require Slim::Web::ImageProxy;
 		
-		# XXX - some might not have updated their 7.8 yet...
-		if ( UNIVERSAL::can('Slim::Web::ImageProxy', 'getRightSize') ) {
-		
 		Slim::Web::ImageProxy->registerHandler(
 			match => $songImgRegex,
 			func  => sub {
@@ -105,8 +105,8 @@ sub initPlugin {
 		);
 
 		main::DEBUGLOG && $log->debug("Successfully registered image proxy for Radio Paradise artwork");
-		
-		}
+
+		$useLocalImageproxy = 1;
 	} if $prefs->get('useLocalImageproxy');
 }
 
@@ -114,9 +114,10 @@ sub nowPlayingInfoMenu {
 	my ( $client, $url, $track, $remoteMeta, $tags ) = @_;
 	
 	my $items = [];
+	$remoteMeta ||= {};
 
 	# only continue if we're playing RP (either URL matches, or the cover url is pointing to radioparadise.com)
-	return unless $url =~ $radioUrlRegex || ($remoteMeta && $remoteMeta->{cover} && $remoteMeta->{cover} =~ /radioparadise\.com/);
+	return unless isRP($url, $remoteMeta->{cover});
 
 	# add item to controll the current playlist
 	my $song = $client->master->playingSong;
@@ -133,6 +134,7 @@ sub nowPlayingInfoMenu {
 				url  => sub {
 					my ($client, $cb) = @_;
 
+					Slim::Control::Request::unsubscribe(\&_onPlaylistEvent);
 					Slim::Utils::Timers::killTimers(undef, \&_getHDImage);
 				
 					Slim::Utils::Cache->new()->set( "remote_image_$url", $artworkUrl, 3600 );
@@ -159,7 +161,10 @@ sub nowPlayingInfoMenu {
 
 					$client->master->pluginData( rpHD => $remoteMeta->{cover} );
 					
-					_getHDImage($url, $client);
+					_getHDImage(undef, $client);
+
+					# listen to playlist events to make sure we correctly initialise/disable HD downloading
+					Slim::Control::Request::subscribe(\&_onPlaylistEvent, [['playlist'], ['newsong', 'pause', 'stop', 'play']]);
 
 					$cb->({
 						items => [{
@@ -255,7 +260,7 @@ sub _playSomethingDifferentSuccess {
 			{ timeOffset => $result->{cue} } || 0
 		] );
 		
-		Slim::Control::Request::subscribe(\&_playingElseDone, [['playlist'], ['newsong']], $client);
+		Slim::Control::Request::subscribe(\&_playingElseDone, [['playlist'], ['newsong']]);
 		
 		$msg = $client->string('JIVE_POPUP_NOW_PLAYING', $title);	
 	}
@@ -274,11 +279,15 @@ sub _playingElseDone {
 }
 
 sub _getHDImage {
-	my ($url, $client) = @_;
+	my $client = $_[1];
+	
+	return unless $client->master->isPlaying;
 	
 	Slim::Utils::Timers::killTimers(undef, \&_getHDImage);
 	
 	return unless $client->master->pluginData('rpHD');
+
+	main::DEBUGLOG && $log->debug("Get new HD artwork url");
 	
 	Slim::Networking::SimpleAsyncHTTP->new(
 		\&_gotHDImageResponse,
@@ -286,7 +295,6 @@ sub _getHDImage {
 		{
 			timeout => 5,
 			client  => $client,
-			url     => $url,
 		}
 	)->get(HD_URL);
 }
@@ -294,47 +302,81 @@ sub _getHDImage {
 sub _gotHDImageResponse {
 	my $http   = shift;
 	my $client = $http->params('client');
-#	my $url    = $http->params('url');
 
 	my $artworkUrl = $http->content;
+	
 	if ($artworkUrl && $artworkUrl =~ /^http/) {
 		$artworkUrl =~ s/ .*//g;
 		$artworkUrl =~ s/\n//g;
 
 		main::DEBUGLOG && $log->debug("Got new HD artwork url: $artworkUrl");
 		
-		my $http = Slim::Networking::SimpleAsyncHTTP->new(
-			sub {
-				my $http = shift;
+		my $setArtwork = sub {
+			my $song = $client->playingSong() || return;
 
-				if ($http->code == 200) {
-					if ( my $song = $client->playingSong() ) {
-
-						# keep track of track artwork
-						my $meta = Slim::Player::Protocols::HTTP->getMetadataFor($client, $song->track->url, 1);
-						if ( $meta && $meta->{cover} && $meta->{cover} =~ $songImgRegex ) {
-							main::DEBUGLOG && $log->debug('Track info changed - keep track of cover art URL: ' . $meta->{cover});
-							$client->master->pluginData( rpHD => $meta->{cover} );
-						}
-
-						Slim::Utils::Cache->new()->set( "remote_image_" . $song->track->url, $artworkUrl, 3600 );
-						$song->pluginData( httpCover => $artworkUrl );
-						Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
-						
-						main::DEBUGLOG && $log->debug("Pre-cached new HD artwork for $artworkUrl");
-					}
-				}
-			},
-			sub {},
-			{
-				timeout => 5,
-				cache   => 1,
+			# keep track of track artwork
+			my $meta = Slim::Player::Protocols::HTTP->getMetadataFor($client, $song->track->url, 1);
+			if ( $meta && $meta->{cover} && $meta->{cover} =~ $songImgRegex ) {
+				main::DEBUGLOG && $log->debug('Track info changed - keep track of cover art URL: ' . $meta->{cover});
+				$client->master->pluginData( rpHD => $meta->{cover} );
 			}
-		)->get($artworkUrl);
+
+			Slim::Utils::Cache->new()->set( "remote_image_" . $song->track->url, $artworkUrl, 3600 );
+			$song->pluginData( httpCover => $artworkUrl );
+			Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
+		};
+
+		if ( $useLocalImageproxy ) {
+			Slim::Networking::SimpleAsyncHTTP->new(
+				sub {
+					$setArtwork->() if $_[0]->code == 200;
+					main::DEBUGLOG && $log->debug("Pre-cached new HD artwork for $artworkUrl");
+				},
+				sub {},
+				{
+					timeout => 5,
+					cache   => 1,
+				}
+			)->get($artworkUrl);
+		}
+		else {
+			$setArtwork->();
+		}		
 	}
 
 	Slim::Utils::Timers::killTimers(undef, \&_getHDImage);
-	Slim::Utils::Timers::setTimer(undef, time + HD_INTERVAL, \&_getHDImage, $client);
+	$timer = Slim::Utils::Timers::setTimer(undef, time + HD_INTERVAL, \&_getHDImage, $client);
+}
+
+sub _onPlaylistEvent {
+	my $request = shift;
+	my $client  = $request->client || return;
+	
+	my $song = $client->playingSong();
+	
+	if ( main::DEBUGLOG && $log->is_debug ) {
+		$log->debug('Dealing with "' . $request->getRequestString . '" event');
+		$log->debug('Currently playing: ' . ($song ? $song->track->url : 'unk'));
+	}
+
+	if ( $song && isRP($song->track->url) ) {
+		if ( $client->master->pluginData('rpHD') && $client->isPlaying) {
+			$timer = Slim::Utils::Timers::setTimer(undef, time + HD_INTERVAL, \&_getHDImage, $client);
+		}
+	}
+	# we're no longer playing RP - kill the download timers if there are any
+	elsif ($song && $timer) {
+		$timer = undef;
+		Slim::Utils::Timers::killTimers(undef, \&_getHDImage);
+	}
+}
+
+sub isRP {
+	my ($url, $coverUrl) = @_;
+	
+	$coverUrl ||= '';
+	
+	return $url =~ $radioUrlRegex || $coverUrl =~ /radioparadise\.com/
 }
 
 sub cleanupPlaylist {
@@ -346,7 +388,7 @@ sub cleanupPlaylist {
 	# restore some parameters when we're no longer playing any temporary track
 	if ( $force || $current !~ $songUrlRegex ) {
 		!$force && main::DEBUGLOG && $log->debug("We're done playing something different. Back to the main stream.");
-		Slim::Control::Request::unsubscribe(\&_playingElseDone, $client);
+		Slim::Control::Request::unsubscribe(\&_playingElseDone);
 		$client->pluginData('rp_psd_trackinfo' => undef);
 
 		my $oldPrefs = $client->pluginData('rp_psd_prefs');
@@ -376,6 +418,9 @@ sub cleanupPlaylist {
 
 sub shutdownPlugin {
 	my $class = shift;
+
+	Slim::Control::Request::unsubscribe(\&_onPlaylistEvent);
+	Slim::Control::Request::unsubscribe(\&_playingElseDone);
 	
 	return if main::SLIM_SERVICE;
 	
