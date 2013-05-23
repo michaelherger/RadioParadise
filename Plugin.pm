@@ -381,6 +381,9 @@ sub isRP {
 
 sub cleanupPlaylist {
 	my ( $class, $client, $force ) = @_;
+	
+	return unless $client;
+	
 	$client = $client->master;
 
 	my $current = ($client->playingSong && $client->playingSong->track && $client->playingSong->track->url) || '';
