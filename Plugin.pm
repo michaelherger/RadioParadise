@@ -227,7 +227,7 @@ sub _playSomethingDifferentSuccess {
 		$msg = $client->string('PLUGIN_RADIO_PARADISE_PSD_FAILED');
 	}
 	elsif ( !$result->{url} ) {
-		$log->error(Data::Dump::dump("Something's wrong with this track information:", $result));
+		$log->is_debug || $log->error(Data::Dump::dump("Something's wrong with this track information:", $result));
 		$msg = $client->string('PLUGIN_RADIO_PARADISE_PSD_FAILED');
 	}
 	else {
