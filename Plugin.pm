@@ -27,7 +27,7 @@ my $prefs = preferences('server');
 
 use constant PSD_URL         => 'http://radioparadise.com/ajax_replace_sb.php?uid=';
 use constant DEFAULT_ARTWORK => 'http://www.radioparadise.com/graphics/metadata_2.jpg';
-use constant HD_URL          => 'http://www.radioparadise.com/ajax_image.php?width=640';
+use constant HD_URL          => 'http://www.radioparadise.com/ajax_image.php?width=1280';
 use constant HD_INTERVAL     => 15;
 
 # s13606 is the TuneIn ID for RP - Shoutcast URLs are recognized by the cover URL. Hopefully.
