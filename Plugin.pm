@@ -138,7 +138,7 @@ sub handleFeed {
 
 	my $items = nowPlayingInfoMenu($client, $url, $track) || [];
 	
-	unshift $items, {
+	unshift @$items, {
 		type => 'audio',
 		name => $client->string('PLUGIN_RADIO_PARADISE_PLAY'),
 		url  => 'radioparadise://1.flac',
