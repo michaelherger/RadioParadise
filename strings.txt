@@ -1,5 +1,9 @@
 PLUGIN_RADIO_PARADISE
 	EN	Radio Paradise
+	
+PLUGIN_RADIO_PARADISE_PLAY
+	DE	Verlustfreies Radio Paradise abspielen
+	EN	Play lossless Radio Paradise
 
 PLUGIN_RADIO_PARADISE_DESC
 	DE	Unterstützung für die "Play Something Different" Funktion von Radio Paradise.

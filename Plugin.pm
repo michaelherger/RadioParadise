@@ -6,6 +6,8 @@ package Plugins::RadioParadise::Plugin;
 
 use strict;
 
+use base qw(Slim::Plugin::OPMLBased);
+
 use vars qw($VERSION);
 use Digest::MD5 qw(md5_hex);
 use JSON::XS::VersionOneAndTwo;
@@ -32,7 +34,7 @@ use constant HD_INTERVAL     => 15;
 
 # s13606 is the TuneIn ID for RP - Shoutcast URLs are recognized by the cover URL. Hopefully.
 #my $radioUrlRegex = qr/(?:\.radioparadise\.com|id=s13606|shoutcast\.com.*id=(785339|101265|1595911|674983|308768|1604072|1646896|1695633|856611))/i;
-my $radioUrlRegex = qr/(?:\.radioparadise\.com|id=s13606|radio_paradise)/i;
+my $radioUrlRegex = qr/(?:^radioparadise:|\.radioparadise\.com|id=s13606|radio_paradise)/i;
 my $songUrlRegex  = qr/radioparadise\.com\/temp\/[a-z0-9]+\.mp3/i;
 my $songImgRegex  = qr/radioparadise\.com\/graphics\/covers\/[sml]\/.*/;
 my $hdImgRegex    = qr/radioparadise\.com.*\/graphics\/tv_img/;
@@ -108,6 +110,43 @@ sub initPlugin {
 
 		$useLocalImageproxy = 1;
 	} if $prefs->get('useLocalImageproxy');
+
+	Slim::Player::ProtocolHandlers->registerHandler(
+		radioparadise => 'Plugins::RadioParadise::ProtocolHandler'
+	);
+
+	$class->SUPER::initPlugin(
+		feed   => \&handleFeed,
+		tag    => 'radioparadise',
+		menu   => 'radios',
+		is_app => 1,
+		weight => 1,
+	);
+}
+
+
+sub getDisplayName { 'PLUGIN_RADIO_PARADISE' }
+sub playerMenu {}
+
+sub handleFeed {
+	my ($client, $cb, $args) = @_;
+
+	$client = $client->master;
+	my $song = $client->playingSong();
+	my $track = $song->track if $song;
+	my $url = $track->url if $track;
+
+	my $items = nowPlayingInfoMenu($client, $url, $track) || [];
+	
+	unshift $items, {
+		type => 'audio',
+		name => $client->string('PLUGIN_RADIO_PARADISE_PLAY'),
+		url  => 'radioparadise://1.flac',
+	};
+
+	$cb->({
+		items => $items,
+	});
 }
 
 sub nowPlayingInfoMenu {
