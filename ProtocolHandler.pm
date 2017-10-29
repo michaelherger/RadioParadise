@@ -54,6 +54,13 @@ sub getNextTrack {
 	my ($class, $song, $successCb, $errorCb) = @_;
 	
 	my $client = $song->master;
+	my $event = '';
+	
+	if ( my $blockData = $song->pluginData('blockData') ) {
+		if ( my $endevent = $blockData->{'end_event'} ) {
+			$event = '?event=' . $endevent;
+		}
+	}
 
 	Slim::Networking::SimpleAsyncHTTP->new(
 		sub {
@@ -84,7 +91,7 @@ sub getNextTrack {
 		{
 			timeout => 15,
 		},
-	)->get(BASE_URL);
+	)->get(BASE_URL . $event);
 }
 
 # we ignore most of this... only return a fake bitrate, and the content type. Length would create a progress bar
@@ -123,18 +130,20 @@ sub getMetadataFor {
 	return {} unless $song;
 
 	if ( $song->pluginData('blockData') && $song->pluginData('blockData')->{url} eq $song->streamUrl && abs($song->pluginData('ttl') - time) > 5 && (my $meta = $song->pluginData('meta')) ) {
+		main::DEBUGLOG && $log->is_debug && $log->debug("Returning cached metadata");
 		return $meta;
 	}
 
 	my $icon = $class->getIcon();
 
-	my $songtime = Slim::Player::Source::songTime($client) * 1000;
-	my $meta;
-
 	if ( my $cached = $song->pluginData('blockData') ) {
-		my $songtime = Slim::Player::Source::songTime($client) * 1000;
+		my $songtime = ($song->streamUrl eq $cached->{url})
+			? Slim::Player::Source::songTime($client) * 1000
+			: 0;
 		my $meta;
-
+		
+		main::DEBUGLOG && $log->is_debug && $log->debug(sprintf("Current playtime in block (%s): %.1f", $song->streamUrl, $songtime/1000));
+		
 		foreach (sort keys %{$cached->{song}}) {
 			my $songdata = $cached->{song}->{$_};
 			$songtime -= $songdata->{duration};
@@ -159,9 +168,11 @@ sub getMetadataFor {
 		if ($meta) {
 			# if track has not changed yet, check in a few seconds again...
 			if (abs($songtime) < 20_000 && $song->pluginData('meta') && $song->pluginData('meta')->{song_id} == $meta->{song_id}) {
+				main::DEBUGLOG && $log->is_debug && $log->debug("Not sure I'm in the right place - scheduling another update soon");
 				$song->pluginData(ttl => time() + 5);
 			}
 			else {
+				main::DEBUGLOG && $log->is_debug && $log->debug("Scheduling an update for the end of this song: " . int($meta->{duration}/1000));
 				$song->pluginData(ttl => time() + $meta->{duration}/1000);
 			}
 			$song->pluginData(meta => $meta);
@@ -189,6 +200,7 @@ sub getMetadataFor {
 
 sub _metadataUpdate {
 	my ($client) = @_;
+	main::DEBUGLOG && $log->is_debug && $log->debug("Scheduled metadata update");
 	Slim::Utils::Timers::killTimers($client, \&_metadataUpdate);
 	Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
 }
