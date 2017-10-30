@@ -39,8 +39,20 @@ sub new {
 sub getFormatForURL { 'flac' }
 
 sub canSeek { 0 }
-sub canSkip { 0 }
 sub canDirectStreamSong { 0 }
+
+sub canDoAction {
+	my ( $class, $client, $url, $action ) = @_;
+	
+	# "stop" seems to be called when a user presse FWD...
+	if ( $action eq 'stop' ) {
+		my $song = $client->master->streamingSong();
+		$song->pluginData( skip => 1 );
+	}
+
+	return 1;
+}
+
 
 sub isRepeatingStream { 1 }
 
@@ -57,8 +69,13 @@ sub getNextTrack {
 	my $event = '';
 	
 	if ( my $blockData = $song->pluginData('blockData') ) {
-		if ( my $endevent = $blockData->{'end_event'} ) {
-			$event = '?event=' . $endevent;
+		# on skip we can get the next track
+		if ( $song->pluginData('skip') ) {
+			$event = '&event=' . $blockData->{event} . '&elapsed=' . Slim::Player::Source::songTime($client);
+			$song->pluginData( skip => 0 );
+		}
+		elsif ( my $endevent = $blockData->{'end_event'} ) {
+			$event = '&event=' . $endevent;
 		}
 	}
 
@@ -76,6 +93,7 @@ sub getNextTrack {
 				$result->{url} .= '?src=alexa';
 				
 				$song->pluginData(blockData => $result);
+				$song->pluginData(ttl => 0);
 				$song->streamUrl($result->{url});
 			}
 
@@ -128,7 +146,7 @@ sub getMetadataFor {
 	my $song = $forceCurrent ? $client->streamingSong() : $client->playingSong();
 	return {} unless $song;
 
-	if ( $song->pluginData('blockData') && $song->pluginData('blockData')->{url} eq $song->streamUrl && abs($song->pluginData('ttl') - time) > 5 && (my $meta = $song->pluginData('meta')) ) {
+	if ( $song->pluginData('blockData') && $song->pluginData('ttl') && $song->pluginData('blockData')->{url} eq $song->streamUrl && abs($song->pluginData('ttl') - time) > 5 && (my $meta = $song->pluginData('meta')) ) {
 		main::DEBUGLOG && $log->is_debug && $log->debug("Returning cached metadata");
 		return $meta;
 	}
@@ -159,6 +177,9 @@ sub getMetadataFor {
 					bitrate=> int($song->bitrate ? ($song->bitrate / 1000) : 850) . 'k VBR FLAC',
 					song_id => $songdata->{song_id},
 					slideshow => [ split(/,/, ($songdata->{slideshow} || '')) ],
+					buttons   => {
+						rew => 0,
+					},
 				};
 				
 				last;
@@ -195,6 +216,10 @@ sub getMetadataFor {
 		duration=> 0,
 		secs    => 0,
 		song_id => 0,
+		slideshow => [],
+		buttons   => {
+			rew => 0,
+		},
 	};
 }
 
