@@ -75,7 +75,6 @@ sub getNextTrack {
 				# XXX - remove once enabled
 				$result->{url} .= '?src=alexa';
 				
-				$song->pluginData(blockLength => $result->{length});
 				$song->pluginData(blockData => $result);
 				$song->streamUrl($result->{url});
 			}
@@ -114,8 +113,8 @@ sub parseDirectHeaders {
 	
 	my $song = $client->streamingSong();
 
-	if ($length && $song->pluginData('blockLength')) {
-		$bitrate = $length * 8 / $song->pluginData('blockLength');
+	if ($length && $song->pluginData('blockData')) {
+		$bitrate = $length * 8 / $song->pluginData('blockData')->{length};
 	}
 
 	#       title, bitrate, metaint, redir, type, length, body
@@ -156,9 +155,10 @@ sub getMetadataFor {
 					year   => $songdata->{year},
 					duration => $songdata->{duration},
 					secs   => $songdata->{duration},
-					cover  => 'https:' . $cached->{image_base} . $songdata->{cover},
+					cover  => $song->pluginData('httpCover') || 'https:' . $cached->{image_base} . $songdata->{cover},
 					bitrate=> int($song->bitrate ? ($song->bitrate / 1000) : 850) . 'k VBR FLAC',
 					song_id => $songdata->{song_id},
+					slideshow => [ split(/,/, ($songdata->{slideshow} || '')) ],
 				};
 				
 				last;

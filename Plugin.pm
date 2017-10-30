@@ -31,6 +31,7 @@ use constant PSD_URL         => 'http://radioparadise.com/ajax_replace_sb.php?ui
 use constant DEFAULT_ARTWORK => 'http://www.radioparadise.com/graphics/metadata_2.jpg';
 use constant HD_URL          => 'http://www.radioparadise.com/ajax_image.php?width=1280';
 use constant HD_INTERVAL     => 15;
+use constant HD_PATH         => 'slideshow/720/';
 
 # s13606 is the TuneIn ID for RP - Shoutcast URLs are recognized by the cover URL. Hopefully.
 #my $radioUrlRegex = qr/(?:\.radioparadise\.com|id=s13606|shoutcast\.com.*id=(785339|101265|1595911|674983|308768|1604072|1646896|1695633|856611))/i;
@@ -332,6 +333,21 @@ sub _getHDImage {
 
 	main::DEBUGLOG && $log->debug("Get new HD artwork url");
 	
+	my $song = $client->streamingSong();
+	
+	# cut short if we have slideshow information from the flac's metadata
+	if ( $song && $song->pluginData('ttl') && $song->pluginData('meta') && ($song->pluginData('ttl') - time) > 0 && (my $meta = $song->pluginData('meta')) ) {
+		if ( $meta->{slideshow} && (my ($nextSlide) = shift @{$meta->{slideshow}} ) ) {
+			my $artworkUrl = 'https:' . $song->pluginData('blockData')->{image_base} . HD_PATH . $nextSlide . '.jpg';
+			$meta->{cover} = $artworkUrl;
+			_setArtwork($client, $artworkUrl);
+
+			Slim::Utils::Timers::killTimers(undef, \&_getHDImage);
+			$timer = Slim::Utils::Timers::setTimer(undef, time + HD_INTERVAL, \&_getHDImage, $client);
+			return;
+		}
+	}
+	
 	Slim::Networking::SimpleAsyncHTTP->new(
 		\&_gotHDImageResponse,
 		\&_gotHDImageResponse,
@@ -345,6 +361,7 @@ sub _getHDImage {
 sub _gotHDImageResponse {
 	my $http   = shift;
 	my $client = $http->params('client');
+	$client = $client->master;
 
 	my $artworkUrl = $http->content;
 	
@@ -354,41 +371,47 @@ sub _gotHDImageResponse {
 
 		main::DEBUGLOG && $log->debug("Got new HD artwork url: $artworkUrl");
 		
-		my $setArtwork = sub {
-			my $song = $client->playingSong() || return;
-
-			# keep track of track artwork
-			my $meta = Slim::Player::Protocols::HTTP->getMetadataFor($client, $song->track->url, 1);
-			if ( $meta && $meta->{cover} && $meta->{cover} =~ $songImgRegex ) {
-				main::DEBUGLOG && $log->debug('Track info changed - keep track of cover art URL: ' . $meta->{cover});
-				$client->master->pluginData( rpHD => $meta->{cover} );
-			}
-
-			Slim::Utils::Cache->new()->set( "remote_image_" . $song->track->url, $artworkUrl, 3600 );
-			$song->pluginData( httpCover => $artworkUrl );
-			Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
-		};
-
-		if ( $useLocalImageproxy ) {
-			Slim::Networking::SimpleAsyncHTTP->new(
-				sub {
-					$setArtwork->() if $_[0]->code == 200;
-					main::DEBUGLOG && $log->debug("Pre-cached new HD artwork for $artworkUrl");
-				},
-				sub {},
-				{
-					timeout => 5,
-					cache   => 1,
-				}
-			)->get($artworkUrl);
-		}
-		else {
-			$setArtwork->();
-		}		
+		_setArtwork($client, $artworkUrl);
 	}
 
 	Slim::Utils::Timers::killTimers(undef, \&_getHDImage);
 	$timer = Slim::Utils::Timers::setTimer(undef, time + HD_INTERVAL, \&_getHDImage, $client);
+}
+
+sub _setArtwork {
+	my ($client, $artworkUrl) = @_;
+
+	my $setArtwork = sub {
+		my $song = $client->playingSong() || return;
+
+		# keep track of track artwork
+		my $meta = Slim::Player::Protocols::HTTP->getMetadataFor($client, $song->track->url, 1);
+		if ( $meta && $meta->{cover} && $meta->{cover} =~ $songImgRegex ) {
+			main::DEBUGLOG && $log->debug('Track info changed - keep track of cover art URL: ' . $meta->{cover});
+			$client->master->pluginData( rpHD => $meta->{cover} );
+		}
+
+		Slim::Utils::Cache->new()->set( "remote_image_" . $song->track->url, $artworkUrl, 3600 );
+		$song->pluginData( httpCover => $artworkUrl );
+		Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
+	};
+
+	if ( $useLocalImageproxy ) {
+		Slim::Networking::SimpleAsyncHTTP->new(
+			sub {
+				$setArtwork->() if $_[0]->code == 200;
+				main::DEBUGLOG && $log->debug("Pre-cached new HD artwork for $artworkUrl");
+			},
+			sub {},
+			{
+				timeout => 5,
+				cache   => 1,
+			}
+		)->get($artworkUrl);
+	}
+	else {
+		$setArtwork->();
+	}		
 }
 
 sub _onPlaylistEvent {
