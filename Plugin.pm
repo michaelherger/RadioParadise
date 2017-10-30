@@ -21,7 +21,7 @@ use Slim::Utils::Timers;
 
 my $log = Slim::Utils::Log->addLogCategory( {
 	category     => 'plugin.radioparadise',
-	defaultLevel => 'ERROR',
+	defaultLevel => 'WARN',
 	description  => 'PLUGIN_RADIO_PARADISE',
 } );
 
@@ -32,6 +32,16 @@ use constant DEFAULT_ARTWORK => 'http://www.radioparadise.com/graphics/metadata_
 use constant HD_URL          => 'http://www.radioparadise.com/ajax_image.php?width=1280';
 use constant HD_INTERVAL     => 15;
 use constant HD_PATH         => 'slideshow/720/';
+
+my $canLossless = Slim::Networking::Async::HTTP->hasSSL();
+
+if ($canLossless) {
+	eval {
+		require Slim::Player::Protocols::HTTPS;
+	};
+	
+	$canLossless = 0 if $@;
+}
 
 # s13606 is the TuneIn ID for RP - Shoutcast URLs are recognized by the cover URL. Hopefully.
 #my $radioUrlRegex = qr/(?:\.radioparadise\.com|id=s13606|shoutcast\.com.*id=(785339|101265|1595911|674983|308768|1604072|1646896|1695633|856611))/i;
@@ -112,9 +122,16 @@ sub initPlugin {
 		$useLocalImageproxy = 1;
 	} if $prefs->get('useLocalImageproxy');
 
-	Slim::Player::ProtocolHandlers->registerHandler(
-		radioparadise => 'Plugins::RadioParadise::ProtocolHandler'
-	);
+	if ($canLossless) {
+		Slim::Player::ProtocolHandlers->registerHandler(
+			radioparadise => 'Plugins::RadioParadise::ProtocolHandler'
+		);
+	}
+	else {
+		$log->warn(Slim::Utils::Strings::string('PLUGIN_RADIO_PARADISE_MISSING_SSL'));
+	}
+
+	
 
 	$class->SUPER::initPlugin(
 		feed   => \&handleFeed,
@@ -139,10 +156,15 @@ sub handleFeed {
 
 	my $items = nowPlayingInfoMenu($client, $url, $track) || [];
 	
-	unshift @$items, {
+	unshift @$items, $canLossless 
+	? {
 		type => 'audio',
 		name => $client->string('PLUGIN_RADIO_PARADISE_PLAY'),
 		url  => 'radioparadise://1.flac',
+	}
+	: {
+		name => $client->string('PLUGIN_RADIO_PARADISE_MISSING_SSL'),
+		type => 'textarea'
 	};
 
 	$cb->({
