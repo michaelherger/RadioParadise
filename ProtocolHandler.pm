@@ -13,10 +13,10 @@ use Slim::Utils::Timers;
 use constant BASE_URL => 'https://api.radioparadise.com/api/get_block?bitrate=%s&info=true&src=alexa%s';
 
 my %AAC_BITRATE = (
-	0 => 32_000,
-	1 => 64_000,
-	2 => 128_000,
-	3 => 320_000,
+	0 => 32,
+	1 => 64,
+	2 => 128,
+	3 => 320,
 );
 
 my $log = logger('plugin.radioparadise');
@@ -158,9 +158,9 @@ sub parseDirectHeaders {
 
 	if ($ct =~ /aac/i) {
 		my ($quality, $format) = _getStreamParams($song->track->url);
-		$bitrate = $AAC_BITRATE{$quality};
+		$bitrate = $AAC_BITRATE{$quality} * 1024;
 	}
-	if ($length && $song->pluginData('blockData')) {
+	elsif ($length && $song->pluginData('blockData')) {
 		$bitrate = $length * 8 / $song->pluginData('blockData')->{length};
 	}
 
@@ -190,6 +190,16 @@ sub getMetadataFor {
 		
 		main::DEBUGLOG && $log->is_debug && $log->debug(sprintf("Current playtime in block (%s): %.1f", $song->streamUrl, $songtime/1000));
 		
+		my ($quality, $format) = _getStreamParams($song->track()->url);
+	
+		my $bitrate = '';
+		if ($quality == 4 || $format eq 'flac') {
+			$bitrate = int($song->bitrate ? ($song->bitrate / 1024) : 850) . 'k VBR FLAC';
+		}
+		elsif ($quality < 4) {
+			$bitrate = $AAC_BITRATE{$quality} . 'k CBR AAC';
+		}
+
 		foreach (sort keys %{$cached->{song}}) {
 			my $songdata = $cached->{song}->{$_};
 			$songtime -= $songdata->{duration};
@@ -203,7 +213,7 @@ sub getMetadataFor {
 					duration => $songdata->{duration},
 					secs   => $songdata->{duration},
 					cover  => $song->pluginData('httpCover') || 'https:' . $cached->{image_base} . $songdata->{cover},
-					bitrate=> int($song->bitrate ? ($song->bitrate / 1000) : 850) . 'k VBR FLAC',
+					bitrate=> $bitrate,
 					song_id => $songdata->{song_id},
 					slideshow => [ split(/,/, ($songdata->{slideshow} || '')) ],
 					buttons   => {
@@ -239,8 +249,7 @@ sub getMetadataFor {
 	return {
 		icon    => $icon,
 		cover   => $icon,
-		bitrate => '850k VBR FLAC',
-		type    => 'FLAC',
+		bitrate => '',
 		title   => 'Radio Paradise',
 		duration=> 0,
 		secs    => 0,
