@@ -10,7 +10,14 @@ use Slim::Networking::SimpleAsyncHTTP;
 use Slim::Utils::Log;
 use Slim::Utils::Timers;
 
-use constant BASE_URL => 'https://api.radioparadise.com/api/get_block?bitrate=4&info=true&src=alexa';
+use constant BASE_URL => 'https://api.radioparadise.com/api/get_block?bitrate=%s&info=true&src=alexa%s';
+
+my %AAC_BITRATE = (
+	0 => 32_000,
+	1 => 64_000,
+	2 => 128_000,
+	3 => 320_000,
+);
 
 my $log = logger('plugin.radioparadise');
 
@@ -23,6 +30,8 @@ sub new {
 	
 	my $song      = $args->{'song'};
 	my $streamUrl = $song->streamUrl() || return;
+	
+	my ($bitrate, $format) = _getStreamParams( $args->{url} );
 
 	my $sock = $class->SUPER::new( {
 		url     => $streamUrl,
@@ -31,12 +40,17 @@ sub new {
 		bitrate => 850_000,
 	} ) || return;
 	
-	${*$sock}{contentType} = 'audio/x-flac';
+	${*$sock}{contentType} = 'audio/' . $format;
 
 	return $sock;
 }
 
-sub getFormatForURL { 'flac' }
+sub getFormatForURL {
+	my ($class, $url) = @_;
+	
+	my (undef, $format) = _getStreamParams( $url );
+	return $format;
+}
 
 sub canSeek { 0 }
 sub canDirectStreamSong { 0 }
@@ -79,6 +93,13 @@ sub getNextTrack {
 		}
 	}
 
+	my ($quality, $format) = _getStreamParams($song->track()->url);
+
+	# we used to use 1.flac initially. But flac is quality 4...
+	if ($quality == 1 && $format eq 'flac') {
+		$quality = 4;
+	}
+
 	Slim::Networking::SimpleAsyncHTTP->new(
 		sub {
 			my $response = shift;
@@ -108,7 +129,7 @@ sub getNextTrack {
 		{
 			timeout => 15,
 		},
-	)->get(BASE_URL . $event);
+	)->get(sprintf(BASE_URL, $quality, $event));
 }
 
 # we ignore most of this... only return a fake bitrate, and the content type. Length would create a progress bar
@@ -121,22 +142,30 @@ sub parseDirectHeaders {
 	my $bitrate = 850_000;
 	$client = $client->master;
 	
-	my $length;
+	my ($length, $ct);
 
 	foreach my $header (@headers) {
 		if ( $header =~ /^Content-Length:\s*(.*)/i ) {
 			$length = $1;
 		}
+		elsif ( $header =~ /^Content-Type:\s*(\S*)/i ) {
+			$ct = $1;
+		}
 	}
 	
 	my $song = $client->streamingSong();
+	$ct =~ s/m4a/aac/i;
 
+	if ($ct =~ /aac/i) {
+		my ($quality, $format) = _getStreamParams($song->track->url);
+		$bitrate = $AAC_BITRATE{$quality};
+	}
 	if ($length && $song->pluginData('blockData')) {
 		$bitrate = $length * 8 / $song->pluginData('blockData')->{length};
 	}
 
 	#       title, bitrate, metaint, redir, type, length, body
-	return (undef, $bitrate, 0, undef, 'audio/x-flac', $length, undef);
+	return (undef, $bitrate, 0, undef, $ct, $length, undef);
 }
 
 sub getMetadataFor {
@@ -234,5 +263,10 @@ sub getIcon {
 	return Plugins::RadioParadise::Plugin->_pluginDataFor('icon');
 }
 
+sub _getStreamParams {
+	if ( $_[0] =~ m{radioparadise://(.+)\.(aac|flac)}i ) {
+		return ($1, lc($2) );
+	}
+}
 
 1;

@@ -1,9 +1,17 @@
 PLUGIN_RADIO_PARADISE
 	EN	Radio Paradise
 	
-PLUGIN_RADIO_PARADISE_PLAY
-	DE	Verlustfreies Radio Paradise abspielen
-	EN	Play lossless Radio Paradise
+PLUGIN_RADIO_PARADISE_LOSSLESS
+	DE	Verlustfreie Wiedergabe (FLAC)
+	EN	Play losslessly (FLAC)
+	
+PLUGIN_RADIO_PARADISE_AAC320
+	DE	AAC 320kbps wiedergeben
+	EN	Play AAC 320kbps
+	
+PLUGIN_RADIO_PARADISE_AAC128
+	DE	AAC 128kbps wiedergeben
+	EN	Play AAC 128kbps
 
 PLUGIN_RADIO_PARADISE_DESC
 	DE	Unterstützung für die "Play Something Different" Funktion von Radio Paradise.

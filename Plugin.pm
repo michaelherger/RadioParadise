@@ -156,16 +156,33 @@ sub handleFeed {
 
 	my $items = nowPlayingInfoMenu($client, $url, $track) || [];
 	
-	unshift @$items, $canLossless 
-	? {
-		type => 'audio',
-		name => $client->string('PLUGIN_RADIO_PARADISE_PLAY'),
-		url  => 'radioparadise://1.flac',
+	if ($canLossless) {
+		unshift @$items, {
+			type => 'audio',
+			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS'),
+			url  => 'radioparadise://4.flac',
+		};
+		
+		if ( grep /aac|m4a/i, Slim::Player::CapabilitiesHelper::supportedFormats($client) ) {
+			unshift @$items, {
+				type => 'audio',
+				name => $client->string('PLUGIN_RADIO_PARADISE_AAC320'),
+				#  O = 32k, 1 = 64k, 2 = 128k, 3 = 320k, 4 = flac all aac. 
+				url  => 'radioparadise://3.aac',
+			},{
+				type => 'audio',
+				name => $client->string('PLUGIN_RADIO_PARADISE_AAC128'),
+				#  O = 32k, 1 = 64k, 2 = 128k, 3 = 320k, 4 = flac all aac. 
+				url  => 'radioparadise://2.aac',
+			};
+		}
 	}
-	: {
-		name => $client->string('PLUGIN_RADIO_PARADISE_MISSING_SSL'),
-		type => 'textarea'
-	};
+	else {
+		unshift @$items, {
+			name => $client->string('PLUGIN_RADIO_PARADISE_MISSING_SSL'),
+			type => 'textarea'
+		};
+	}
 
 	$cb->({
 		items => $items,
