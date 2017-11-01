@@ -157,12 +157,7 @@ sub handleFeed {
 	my $items = nowPlayingInfoMenu($client, $url, $track) || [];
 	
 	if ($canLossless) {
-		unshift @$items, {
-			type => 'audio',
-			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS'),
-			url  => 'radioparadise://4.flac',
-		};
-		
+=pod
 		if ( grep /aac|m4a/i, Slim::Player::CapabilitiesHelper::supportedFormats($client) ) {
 			unshift @$items, {
 				type => 'audio',
@@ -176,6 +171,13 @@ sub handleFeed {
 				url  => 'radioparadise://2.aac',
 			};
 		}
+=cut
+
+		unshift @$items, {
+			type => 'audio',
+			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS'),
+			url  => 'radioparadise://4.flac',
+		};
 	}
 	else {
 		unshift @$items, {
