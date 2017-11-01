@@ -37,7 +37,7 @@ sub new {
 		url     => $streamUrl,
 		song    => $args->{'song'},
 		client  => $client,
-		bitrate => 850_000,
+		bitrate => $format < 4 ? $AAC_BITRATE{$bitrate} * 1024 : 850_000,
 	} ) || return;
 	
 	${*$sock}{contentType} = 'audio/' . $format;
@@ -226,6 +226,8 @@ sub getMetadataFor {
 		}
 		
 		if ($meta) {
+			my $notify;
+			
 			# if track has not changed yet, check in a few seconds again...
 			if (abs($songtime) < 20_000 && $song->pluginData('meta') && $song->pluginData('meta')->{song_id} == $meta->{song_id}) {
 				main::DEBUGLOG && $log->is_debug && $log->debug("Not sure I'm in the right place - scheduling another update soon");
@@ -234,8 +236,11 @@ sub getMetadataFor {
 			else {
 				main::DEBUGLOG && $log->is_debug && $log->debug("Scheduling an update for the end of this song: " . int($meta->{duration}/1000));
 				$song->pluginData(ttl => time() + $meta->{duration}/1000);
+				$notify = 1;
 			}
 			$song->pluginData(meta => $meta);
+
+			Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] ) if $notify;
 			
 			if ($songtime) {
 				Slim::Utils::Timers::killTimers($client, \&_metadataUpdate);
