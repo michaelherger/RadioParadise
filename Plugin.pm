@@ -295,7 +295,7 @@ sub _playSomethingDifferentSuccess {
 	# sometimes there's some invalid escaping...
 	$result =~ s/\\(['])/$1/g;
 
-	main::DEBUGLOG && $log->debug("Got a new track: $result");
+	main::INFOLOG && $log->info("Got a new track: $result");
 
 	$client = $client->master;
 
@@ -372,7 +372,7 @@ sub _getHDImage {
 	
 	return unless $client->master->pluginData('rpHD');
 
-	main::DEBUGLOG && $log->debug("Get new HD artwork url");
+	main::INFOLOG && $log->info("Get new HD artwork url");
 	
 	my $song = $client->streamingSong();
 	
@@ -410,7 +410,7 @@ sub _gotHDImageResponse {
 		$artworkUrl =~ s/ .*//g;
 		$artworkUrl =~ s/\n//g;
 
-		main::DEBUGLOG && $log->debug("Got new HD artwork url: $artworkUrl");
+		main::INFOLOG && $log->info("Got new HD artwork url: $artworkUrl");
 		
 		_setArtwork($client, $artworkUrl);
 	}
@@ -428,7 +428,7 @@ sub _setArtwork {
 		# keep track of track artwork
 		my $meta = Slim::Player::Protocols::HTTP->getMetadataFor($client, $song->track->url, 1);
 		if ( $meta && $meta->{cover} && $meta->{cover} =~ $songImgRegex ) {
-			main::DEBUGLOG && $log->debug('Track info changed - keep track of cover art URL: ' . $meta->{cover});
+			main::INFOLOG && $log->info('Track info changed - keep track of cover art URL: ' . $meta->{cover});
 			$client->master->pluginData( rpHD => $meta->{cover} );
 		}
 
@@ -441,7 +441,7 @@ sub _setArtwork {
 		Slim::Networking::SimpleAsyncHTTP->new(
 			sub {
 				$setArtwork->() if $_[0]->code == 200;
-				main::DEBUGLOG && $log->debug("Pre-cached new HD artwork for $artworkUrl");
+				main::INFOLOG && $log->info("Pre-cached new HD artwork for $artworkUrl");
 			},
 			sub {},
 			{
@@ -461,9 +461,9 @@ sub _onPlaylistEvent {
 	
 	my $song = $client->playingSong();
 	
-	if ( main::DEBUGLOG && $log->is_debug ) {
-		$log->debug('Dealing with "' . $request->getRequestString . '" event');
-		$log->debug('Currently playing: ' . ($song ? $song->track->url : 'unk'));
+	if ( main::INFOLOG && $log->is_info ) {
+		$log->info('Dealing with "' . $request->getRequestString . '" event');
+		$log->info('Currently playing: ' . ($song ? $song->track->url : 'unk'));
 	}
 
 	if ( $song && isRP($song->track->url) ) {
@@ -497,7 +497,7 @@ sub cleanupPlaylist {
 
 	# restore some parameters when we're no longer playing any temporary track
 	if ( $force || $current !~ $songUrlRegex ) {
-		!$force && main::DEBUGLOG && $log->debug("We're done playing something different. Back to the main stream.");
+		!$force && main::INFOLOG && $log->info("We're done playing something different. Back to the main stream.");
 		Slim::Control::Request::unsubscribe(\&_playingElseDone);
 		$client->pluginData('rp_psd_trackinfo' => undef);
 
@@ -534,7 +534,7 @@ sub shutdownPlugin {
 	
 	return if main::SLIM_SERVICE;
 	
-	main::DEBUGLOG && $log->debug('Resetting all Radio Paradise custom streams...');
+	main::INFOLOG && $log->info('Resetting all Radio Paradise custom streams...');
 	
 	foreach (Slim::Player::Client::clients()) {
 		$class->cleanupPlaylist($_, 1);

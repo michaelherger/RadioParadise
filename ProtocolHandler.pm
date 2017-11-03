@@ -107,7 +107,7 @@ sub getNextTrack {
 			my $result = eval { from_json($response->content) };
 
 			$@ && $log->error($@);
-			main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($result));
+			main::INFOLOG && $log->is_info && $log->info(Data::Dump::dump($result));
 			
 			if ($result && ref $result && $result->{song}) {
 				# XXX - remove once enabled
@@ -188,7 +188,7 @@ sub getMetadataFor {
 			: 0;
 		my $meta;
 		
-		main::DEBUGLOG && $log->is_debug && $log->debug(sprintf("Current playtime in block (%s): %.1f", $song->streamUrl, $songtime/1000));
+		main::INFOLOG && $log->is_info && $log->info(sprintf("Current playtime in block (%s): %.1f", $song->streamUrl, $songtime/1000));
 		
 		my ($quality, $format) = _getStreamParams($song->track()->url);
 	
@@ -230,11 +230,11 @@ sub getMetadataFor {
 			
 			# if track has not changed yet, check in a few seconds again...
 			if (abs($songtime) < 20_000 && $song->pluginData('meta') && $song->pluginData('meta')->{song_id} == $meta->{song_id}) {
-				main::DEBUGLOG && $log->is_debug && $log->debug("Not sure I'm in the right place - scheduling another update soon");
+				main::INFOLOG && $log->is_info && $log->info("Not sure I'm in the right place - scheduling another update soon");
 				$song->pluginData(ttl => time() + 5);
 			}
 			else {
-				main::DEBUGLOG && $log->is_debug && $log->debug("Scheduling an update for the end of this song: " . int($meta->{duration}/1000));
+				main::INFOLOG && $log->is_info && $log->info("Scheduling an update for the end of this song: " . int($meta->{duration}/1000));
 				$song->pluginData(ttl => time() + $meta->{duration}/1000);
 				$notify = 1;
 			}
@@ -268,7 +268,7 @@ sub getMetadataFor {
 
 sub _metadataUpdate {
 	my ($client) = @_;
-	main::DEBUGLOG && $log->is_debug && $log->debug("Scheduled metadata update");
+	main::INFOLOG && $log->is_info && $log->info("Scheduled metadata update");
 	Slim::Utils::Timers::killTimers($client, \&_metadataUpdate);
 	Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
 }
