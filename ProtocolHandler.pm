@@ -31,13 +31,13 @@ sub new {
 	my $song      = $args->{'song'};
 	my $streamUrl = $song->streamUrl() || return;
 	
-	my ($bitrate, $format) = _getStreamParams( $args->{url} );
+	my ($quality, $format) = _getStreamParams( $args->{url} );
 
 	my $sock = $class->SUPER::new( {
 		url     => $streamUrl,
 		song    => $args->{'song'},
 		client  => $client,
-		bitrate => $format < 4 ? $AAC_BITRATE{$bitrate} * 1024 : 850_000,
+		bitrate => $quality < 4 ? $AAC_BITRATE{$quality} * 1024 : 850_000,
 	} ) || return;
 	
 	${*$sock}{contentType} = 'audio/' . $format;
@@ -94,11 +94,9 @@ sub getNextTrack {
 	}
 
 	my ($quality, $format) = _getStreamParams($song->track()->url);
-
-	# we used to use 1.flac initially. But flac is quality 4...
-	if ($quality == 1 && $format eq 'flac') {
-		$quality = 4;
-	}
+	
+	my $url = sprintf(BASE_URL, $quality, $event);
+	main::INFOLOG && $log->info("Fetching new block of events: $url");
 
 	Slim::Networking::SimpleAsyncHTTP->new(
 		sub {
@@ -129,7 +127,7 @@ sub getNextTrack {
 		{
 			timeout => 15,
 		},
-	)->get(sprintf(BASE_URL, $quality, $event));
+	)->get($url);
 }
 
 # we ignore most of this... only return a fake bitrate, and the content type. Length would create a progress bar
@@ -279,7 +277,10 @@ sub getIcon {
 
 sub _getStreamParams {
 	if ( $_[0] =~ m{radioparadise://(.+)\.(aac|flac)}i ) {
-		return ($1, lc($2) );
+		my $quality = $1;
+		my $format = lc($2);
+		$quality = 4 if $format eq 'flac';
+		return ($quality, $format);
 	}
 }
 
