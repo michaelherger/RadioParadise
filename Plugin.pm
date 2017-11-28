@@ -149,6 +149,11 @@ sub playerMenu {}
 sub handleFeed {
 	my ($client, $cb, $args) = @_;
 
+	if (!$client) {
+		$cb->([{ name => string('NO_PLAYER_FOUND') }]);
+		return;
+	}
+
 	$client = $client->master;
 	my $song = $client->playingSong();
 	my $track = $song->track if $song;
@@ -157,21 +162,28 @@ sub handleFeed {
 	my $items = nowPlayingInfoMenu($client, $url, $track) || [];
 	
 	if ($canLossless) {
-=pod
-		if ( grep /aac|m4a/i, Slim::Player::CapabilitiesHelper::supportedFormats($client) ) {
+		if ( grep /aac/i, Slim::Player::CapabilitiesHelper::supportedFormats($client) ) {
 			unshift @$items, {
 				type => 'audio',
 				name => $client->string('PLUGIN_RADIO_PARADISE_AAC320'),
 				#  O = 32k, 1 = 64k, 2 = 128k, 3 = 320k, 4 = flac all aac. 
-				url  => 'radioparadise://3.aac',
+#				url  => 'radioparadise://3.aac',
+				url => 'http://www.radioparadise.com/m3u/aac-320.m3u',
 			},{
 				type => 'audio',
 				name => $client->string('PLUGIN_RADIO_PARADISE_AAC128'),
 				#  O = 32k, 1 = 64k, 2 = 128k, 3 = 320k, 4 = flac all aac. 
-				url  => 'radioparadise://2.aac',
+#				url  => 'radioparadise://2.aac',
+				url => 'http://www.radioparadise.com/m3u/aac-128.m3u',
 			};
 		}
-=cut
+		else {
+			unshift @$items, {
+				type => 'audio',
+				name => $client->string('PLUGIN_RADIO_PARADISE_MP3_192'),
+				url => 'http://www.radioparadise.com/m3u/mp3-192.m3u',
+			};
+		}
 
 		unshift @$items, {
 			type => 'audio',
