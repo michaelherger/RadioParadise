@@ -173,11 +173,16 @@ sub getMetadataFor {
 	my $song = $forceCurrent ? $client->streamingSong() : $client->playingSong();
 	return {} unless $song;
 
-	if ( $song->pluginData('blockData') && $song->pluginData('ttl') && $song->pluginData('blockData')->{url} eq $song->streamUrl && abs($song->pluginData('ttl') - time) > 5 && (my $meta = $song->pluginData('meta')) ) {
+	if ( $song->pluginData('blockData') && $song->pluginData('ttl') 
+		&& $song->pluginData('blockData')->{url} eq $song->streamUrl 
+		&& $song->pluginData('ttl') - time > 5 
+		&& (my $meta = $song->pluginData('meta')) 
+	) {
 		main::DEBUGLOG && $log->is_debug && $log->debug("Returning cached metadata");
 		return $meta;
 	}
 
+	main::INFOLOG && $log->is_info && $log->info("Refreshing metadata");
 	my $icon = $class->getIcon();
 
 	if ( my $cached = $song->pluginData('blockData') ) {
