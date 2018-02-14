@@ -8,7 +8,7 @@
 	<homepageURL>http://www.herger.net/RadioParadise</homepageURL>
 	<id>28ea6240-9c42-11e2-9e96-0800200c9a66</id>
 	<module>Plugins::RadioParadise::Plugin</module>
-	<icon>/plugins/RadioParadise/html/icon.png</icon>
+	<icon>plugins/RadioParadise/html/icon.png</icon>
 	<targetApplication>
 		<id>SqueezeCenter</id>
 		<maxVersion>*</maxVersion>
