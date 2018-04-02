@@ -17,6 +17,7 @@ use Slim::Menu::TrackInfo;
 use Slim::Networking::SimpleAsyncHTTP;
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
+use Slim::Utils::Strings qw(string);
 use Slim::Utils::Timers;
 
 my $log = Slim::Utils::Log->addLogCategory( {
@@ -128,7 +129,7 @@ sub initPlugin {
 		);
 	}
 	else {
-		$log->warn(Slim::Utils::Strings::string('PLUGIN_RADIO_PARADISE_MISSING_SSL'));
+		$log->warn(string('PLUGIN_RADIO_PARADISE_MISSING_SSL'));
 	}
 
 	
