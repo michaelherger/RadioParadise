@@ -213,8 +213,9 @@ sub getMetadataFor {
 					album  => $songdata->{album},
 					title  => $songdata->{title},
 					year   => $songdata->{year},
-					duration => $songdata->{duration},
-					secs   => $songdata->{duration},
+					# this should be songdata->duration only, really, but LMS gets confused in some places, returning the track length in one case, overall length in others.
+					duration => $cached->{length} || $songdata->{duration},
+					secs   => $cached->{length} || $songdata->{duration},
 					cover  => $song->pluginData('httpCover') || 'https:' . $cached->{image_base} . $songdata->{cover},
 					bitrate=> $bitrate,
 					song_id => $songdata->{song_id},
