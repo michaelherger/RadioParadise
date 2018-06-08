@@ -203,19 +203,23 @@ sub getMetadataFor {
 			$bitrate = $AAC_BITRATE{$quality} . 'k CBR AAC';
 		}
 
+		my $currentDuration = 0;
+
 		foreach (sort keys %{$cached->{song}}) {
 			my $songdata = $cached->{song}->{$_};
 			$songtime -= $songdata->{duration};
 
 			if ($songtime <= 0) {
+				$currentDuration = $songdata->{duration} / 1000;
+
 				$meta = {
 					artist => $songdata->{artist},
 					album  => $songdata->{album},
 					title  => $songdata->{title},
 					year   => $songdata->{year},
 					# this should be songdata->duration only, really, but LMS gets confused in some places, returning the track length in one case, overall length in others.
-					duration => $cached->{length} || $songdata->{duration},
-					secs   => $cached->{length} || $songdata->{duration},
+					duration => $cached->{length} || $currentDuration,
+					secs   => $cached->{length} || $currentDuration,
 					cover  => $song->pluginData('httpCover') || 'https:' . $cached->{image_base} . $songdata->{cover},
 					bitrate=> $bitrate,
 					song_id => $songdata->{song_id},
@@ -224,7 +228,7 @@ sub getMetadataFor {
 						rew => 0,
 					},
 				};
-				
+
 				last;
 			}
 		}
@@ -238,8 +242,8 @@ sub getMetadataFor {
 				$song->pluginData(ttl => time() + 5);
 			}
 			else {
-				main::INFOLOG && $log->is_info && $log->info("Scheduling an update for the end of this song: " . int($meta->{duration}/1000));
-				$song->pluginData(ttl => time() + $meta->{duration}/1000);
+				main::INFOLOG && $log->is_info && $log->info("Scheduling an update for the end of this song: " . int($currentDuration));
+				$song->pluginData(ttl => time() + $currentDuration);
 				$notify = 1;
 			}
 			$song->pluginData(meta => $meta);
