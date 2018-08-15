@@ -10,7 +10,7 @@ use Slim::Networking::SimpleAsyncHTTP;
 use Slim::Utils::Log;
 use Slim::Utils::Timers;
 
-use constant BASE_URL => 'https://api.radioparadise.com/api/get_block?bitrate=%s&info=true&src=alexa%s';
+use constant BASE_URL => 'https://api.radioparadise.com/api/get_block?bitrate=%s&chan=%s&info=true&src=alexa%s';
 
 my %AAC_BITRATE = (
 	0 => 32,
@@ -27,10 +27,10 @@ sub new {
 	my $args   = shift;
 
 	my $client = $args->{client};
-	
+
 	my $song      = $args->{'song'};
 	my $streamUrl = $song->streamUrl() || return;
-	
+
 	my ($quality, $format) = _getStreamParams( $args->{url} );
 
 	my $sock = $class->SUPER::new( {
@@ -39,7 +39,7 @@ sub new {
 		client  => $client,
 		bitrate => $quality < 4 ? $AAC_BITRATE{$quality} * 1024 : 850_000,
 	} ) || return;
-	
+
 	${*$sock}{contentType} = 'audio/' . $format;
 
 	return $sock;
@@ -47,7 +47,7 @@ sub new {
 
 sub getFormatForURL {
 	my ($class, $url) = @_;
-	
+
 	my (undef, $format) = _getStreamParams( $url );
 	return $format;
 }
@@ -57,7 +57,7 @@ sub canDirectStreamSong { 0 }
 
 sub canDoAction {
 	my ( $class, $client, $url, $action ) = @_;
-	
+
 	# "stop" seems to be called when a user presse FWD...
 	if ( $action eq 'stop' ) {
 		my $song = $client->master->streamingSong();
@@ -78,10 +78,10 @@ sub scanUrl {
 
 sub getNextTrack {
 	my ($class, $song, $successCb, $errorCb) = @_;
-	
+
 	my $client = $song->master;
 	my $event = '';
-	
+
 	if ( my $blockData = $song->pluginData('blockData') ) {
 		# on skip we can get the next track
 		if ( $song->pluginData('skip') ) {
@@ -93,24 +93,24 @@ sub getNextTrack {
 		}
 	}
 
-	my ($quality, $format) = _getStreamParams($song->track()->url);
-	
-	my $url = sprintf(BASE_URL, $quality, $event);
+	my ($quality, $format, $mix) = _getStreamParams($song->track()->url);
+
+	my $url = sprintf(BASE_URL, $quality, $mix, $event);
 	main::INFOLOG && $log->info("Fetching new block of events: $url");
 
 	Slim::Networking::SimpleAsyncHTTP->new(
 		sub {
 			my $response = shift;
-			
+
 			my $result = eval { from_json($response->content) };
 
 			$@ && $log->error($@);
 			main::INFOLOG && $log->is_info && $log->info(Data::Dump::dump($result));
-			
+
 			if ($result && ref $result && $result->{song}) {
 				# XXX - remove once enabled
 				$result->{url} .= '?src=alexa';
-				
+
 				$song->pluginData(blockData => $result);
 				$song->pluginData(ttl => 0);
 				$song->streamUrl($result->{url});
@@ -120,7 +120,7 @@ sub getNextTrack {
 		},
 		sub {
 			my ($http, $error) = @_;
-			
+
 			$log->warn("Error: $error");
 			$errorCb->();
 		},
@@ -136,10 +136,10 @@ sub parseDirectHeaders {
 	my $client  = shift || return;
 	my $url     = shift;
 	my @headers = @_;
-	
+
 	my $bitrate = 850_000;
 	$client = $client->master;
-	
+
 	my ($length, $ct);
 
 	foreach my $header (@headers) {
@@ -150,7 +150,7 @@ sub parseDirectHeaders {
 			$ct = $1;
 		}
 	}
-	
+
 	my $song = $client->streamingSong();
 	$ct =~ s/m4a/aac/i;
 
@@ -168,7 +168,7 @@ sub parseDirectHeaders {
 
 sub getMetadataFor {
 	my ( $class, $client, $url, $forceCurrent ) = @_;
-	
+
 	$client = $client->master;
 	my $song = $forceCurrent ? $client->streamingSong() : $client->playingSong();
 	return {} unless $song;
@@ -190,11 +190,11 @@ sub getMetadataFor {
 			? Slim::Player::Source::songTime($client) * 1000
 			: 0;
 		my $meta;
-		
+
 		main::INFOLOG && $log->is_info && $log->info(sprintf("Current playtime in block (%s): %.1f", $song->streamUrl, $songtime/1000));
-		
+
 		my ($quality, $format) = _getStreamParams($song->track()->url);
-	
+
 		my $bitrate = '';
 		if ($quality == 4 || $format eq 'flac') {
 			$bitrate = int($song->bitrate ? ($song->bitrate / 1024) : 850) . 'k VBR FLAC';
@@ -232,10 +232,10 @@ sub getMetadataFor {
 				last;
 			}
 		}
-		
+
 		if ($meta) {
 			my $notify;
-			
+
 			# if track has not changed yet, check in a few seconds again...
 			if (abs($songtime) < 20_000 && $song->pluginData('meta') && $song->pluginData('meta')->{song_id} == $meta->{song_id}) {
 				main::INFOLOG && $log->is_info && $log->info("Not sure I'm in the right place - scheduling another update soon");
@@ -249,15 +249,15 @@ sub getMetadataFor {
 			$song->pluginData(meta => $meta);
 
 			Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] ) if $notify;
-			
+
 			if ($songtime) {
 				Slim::Utils::Timers::killTimers($client, \&_metadataUpdate);
 				Slim::Utils::Timers::setTimer($client, $song->pluginData('ttl'), \&_metadataUpdate);
 			}
-			
+
 			return $meta;
 		}
-	}	
+	}
 
 	return {
 		icon    => $icon,
@@ -286,11 +286,12 @@ sub getIcon {
 }
 
 sub _getStreamParams {
-	if ( $_[0] =~ m{radioparadise://(.+)\.(aac|flac)}i ) {
+	if ( $_[0] =~ m{radioparadise://(.+?)-?(\d)?\.(m4a|aac|flac)}i ) {
 		my $quality = $1;
-		my $format = lc($2);
+		my $mix = $2 || 0;
+		my $format = lc($3);
 		$quality = 4 if $format eq 'flac';
-		return ($quality, $format);
+		return ($quality, $format, $mix);
 	}
 }
 

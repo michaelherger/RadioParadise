@@ -40,7 +40,7 @@ if ($canLossless) {
 	eval {
 		require Slim::Player::Protocols::HTTPS;
 	};
-	
+
 	$canLossless = 0 if $@;
 }
 
@@ -63,7 +63,7 @@ sub initPlugin {
 		isa => 'top',
 		func   => \&nowPlayingInfoMenu,
 	) );
-	
+
 	Slim::Formats::RemoteMetadata->registerProvider(
 		match => $songUrlRegex,
 		func  => sub {
@@ -75,39 +75,39 @@ sub initPlugin {
 
 	# don't know yet how to deal with initially cleaning the client's playlist from temporary tracks on mysb.com - if ever this is going there anyway :-)
 	return if main::SLIM_SERVICE;
-	
+
 	Slim::Control::Request::subscribe(
 		sub {
 			$class->cleanupPlaylist($_[0]->client, 1);
 		},
 		[['client'], ['new']]
 	);
-	
+
 	# try to load custom artwork handler - requires recent LMS 7.8 with new image proxy
 	eval {
 		require Slim::Web::ImageProxy;
-		
+
 		Slim::Web::ImageProxy->registerHandler(
 			match => $songImgRegex,
 			func  => sub {
 				my ($url, $spec) = @_;
-	
+
 				my $size = Slim::Web::ImageProxy->getRightSize($spec, {
 					70  => 's',
 					160 => 'm',
 					300 => 'l',
 				}) || 'l';
 				$url =~ s/\/[sml]\//\/$size\//;
-				
+
 				return $url;
 			},
 		);
-		
+
 		Slim::Web::ImageProxy->registerHandler(
 			match => $hdImgRegex,
 			func  => sub {
 				my ($url, $spec) = @_;
-	
+
 				my $size = Slim::Web::ImageProxy->getRightSize($spec, {
 # don't use smaller than 640, as we pre-cache 640 anyway
 #					320  => '/320',
@@ -132,7 +132,7 @@ sub initPlugin {
 		$log->warn(string('PLUGIN_RADIO_PARADISE_MISSING_SSL'));
 	}
 
-	
+
 
 	$class->SUPER::initPlugin(
 		feed   => \&handleFeed,
@@ -161,19 +161,19 @@ sub handleFeed {
 	my $url = $track->url if $track;
 
 	my $items = nowPlayingInfoMenu($client, $url, $track) || [];
-	
+
 	if ($canLossless) {
 		if ( grep /aac/i, Slim::Player::CapabilitiesHelper::supportedFormats($client) ) {
 			unshift @$items, {
 				type => 'audio',
 				name => $client->string('PLUGIN_RADIO_PARADISE_AAC320'),
-				#  O = 32k, 1 = 64k, 2 = 128k, 3 = 320k, 4 = flac all aac. 
+				#  O = 32k, 1 = 64k, 2 = 128k, 3 = 320k, 4 = flac all aac.
 #				url  => 'radioparadise://3.aac',
 				url => 'http://www.radioparadise.com/m3u/aac-320.m3u',
 			},{
 				type => 'audio',
 				name => $client->string('PLUGIN_RADIO_PARADISE_AAC128'),
-				#  O = 32k, 1 = 64k, 2 = 128k, 3 = 320k, 4 = flac all aac. 
+				#  O = 32k, 1 = 64k, 2 = 128k, 3 = 320k, 4 = flac all aac.
 #				url  => 'radioparadise://2.aac',
 				url => 'http://www.radioparadise.com/m3u/aac-128.m3u',
 			};
@@ -190,6 +190,18 @@ sub handleFeed {
 			type => 'audio',
 			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS'),
 			url  => 'radioparadise://4.flac',
+		},{
+			type => 'audio',
+			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS_1'),
+			url  => 'radioparadise://4-1.flac',
+		},{
+			type => 'audio',
+			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS_2'),
+			url  => 'radioparadise://4-2.flac',
+		},{
+			type => 'audio',
+			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS_3'),
+			url  => 'radioparadise://4-3.flac',
 		};
 	}
 	else {
@@ -206,7 +218,7 @@ sub handleFeed {
 
 sub nowPlayingInfoMenu {
 	my ( $client, $url, $track, $remoteMeta, $tags ) = @_;
-	
+
 	my $items = [];
 	$remoteMeta ||= {};
 
@@ -221,7 +233,7 @@ sub nowPlayingInfoMenu {
 			url  => \&_playSomethingDifferent,
 			nextWindow => 'parent'
 		}];
-		
+
 		if ( my $artworkUrl = $client->master->pluginData('rpHD') ) {
 			push @$items, {
 				name => $client->string('PLUGIN_RADIO_PARADISE_DISABLE_HD'),
@@ -230,11 +242,11 @@ sub nowPlayingInfoMenu {
 
 					Slim::Control::Request::unsubscribe(\&_onPlaylistEvent);
 					Slim::Utils::Timers::killTimers(undef, \&_getHDImage);
-				
+
 					Slim::Utils::Cache->new()->set( "remote_image_$url", $artworkUrl, 3600 );
 					$song->pluginData( httpCover => $artworkUrl );
 					$client->master->pluginData( rpHD => '' );
-				
+
 					Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
 
 					$cb->({
@@ -254,7 +266,7 @@ sub nowPlayingInfoMenu {
 					my ($client, $cb) = @_;
 
 					$client->master->pluginData( rpHD => $remoteMeta->{cover} );
-					
+
 					_getHDImage(undef, $client);
 
 					# listen to playlist events to make sure we correctly initialise/disable HD downloading
@@ -271,13 +283,13 @@ sub nowPlayingInfoMenu {
 			}
 		}
 	}
-	
+
 	return $items;
 }
 
 sub _playSomethingDifferent {
 	my ($client, $cb) = @_;
-	
+
 	my $http = Slim::Networking::SimpleAsyncHTTP->new(
 		\&_playSomethingDifferentSuccess,
 		sub {
@@ -313,9 +325,9 @@ sub _playSomethingDifferentSuccess {
 	$client = $client->master;
 
 	$result = eval { from_json( $result ) };
-	
+
 	my $msg;
-	
+
 	if ( $@ ) {
 		$log->error($@) if $@;
 		$msg = $client->string('PLUGIN_RADIO_PARADISE_PSD_FAILED');
@@ -326,7 +338,7 @@ sub _playSomethingDifferentSuccess {
 	}
 	else {
 		my $title = $result->{title} . ' - ' . $result->{artist};
-		
+
 		# request highest resolution artwork
 		$result->{cover} =~ s/\/m\//\/l\// if $result->{cover};
 
@@ -334,7 +346,7 @@ sub _playSomethingDifferentSuccess {
 		$result->{cover} = DEFAULT_ARTWORK if $result->{cover} =~ m|/0\.jpg$|;
 
 		my $songIndex = Slim::Player::Source::streamingSongIndex($client) || 0;
-		
+
 		# keep track of old settings while we change them
 		my $cprefs = $prefs->client($client);
 		$client->pluginData('rp_psd_prefs' => {
@@ -342,11 +354,11 @@ sub _playSomethingDifferentSuccess {
 			transitionType => $cprefs->get('transitionType') || 0,
 			transitionDuration => $cprefs->get('transitionDuration') || 2,
 		});
-		
+
 		Slim::Player::Playlist::repeat($client, 0);
 		$cprefs->set('transitionType', 4);
 		$cprefs->set('transitionDuration', 2);
-		
+
 		$client->pluginData('rp_psd_trackinfo' => $result);
 		Slim::Control::Request::executeRequest( $client, [ 'playlist', 'insert', $result->{url}, $title ] );
 		Slim::Control::Request::executeRequest( $client, [ 'playlist', 'move', $songIndex + 1, $songIndex ] );
@@ -357,12 +369,12 @@ sub _playSomethingDifferentSuccess {
 			0, 
 			{ timeOffset => $result->{cue} } || 0
 		] );
-		
+
 		Slim::Control::Request::subscribe(\&_playingElseDone, [['playlist'], ['newsong']]);
-		
-		$msg = $client->string('JIVE_POPUP_NOW_PLAYING', $title);	
+
+		$msg = $client->string('JIVE_POPUP_NOW_PLAYING', $title);
 	}
-	
+
 	$cb->({
 		items => [{
 			name => $msg,
@@ -378,17 +390,17 @@ sub _playingElseDone {
 
 sub _getHDImage {
 	my $client = $_[1];
-	
+
 	return unless $client->master->isPlaying;
-	
+
 	Slim::Utils::Timers::killTimers(undef, \&_getHDImage);
-	
+
 	return unless $client->master->pluginData('rpHD');
 
 	main::INFOLOG && $log->info("Get new HD artwork url");
-	
+
 	my $song = $client->streamingSong();
-	
+
 	# cut short if we have slideshow information from the flac's metadata
 	if ( $song && $song->pluginData('ttl') && $song->pluginData('meta') && ($song->pluginData('ttl') - time) > 0 && (my $meta = $song->pluginData('meta')) ) {
 		if ( $meta->{slideshow} && (my ($nextSlide) = shift @{$meta->{slideshow}} ) ) {
@@ -401,7 +413,7 @@ sub _getHDImage {
 			return;
 		}
 	}
-	
+
 	Slim::Networking::SimpleAsyncHTTP->new(
 		\&_gotHDImageResponse,
 		\&_gotHDImageResponse,
@@ -418,13 +430,13 @@ sub _gotHDImageResponse {
 	$client = $client->master;
 
 	my $artworkUrl = $http->content;
-	
+
 	if ($artworkUrl && $artworkUrl =~ /^http/) {
 		$artworkUrl =~ s/ .*//g;
 		$artworkUrl =~ s/\n//g;
 
 		main::INFOLOG && $log->info("Got new HD artwork url: $artworkUrl");
-		
+
 		_setArtwork($client, $artworkUrl);
 	}
 
@@ -465,15 +477,15 @@ sub _setArtwork {
 	}
 	else {
 		$setArtwork->();
-	}		
+	}
 }
 
 sub _onPlaylistEvent {
 	my $request = shift;
 	my $client  = $request->client || return;
-	
+
 	my $song = $client->playingSong();
-	
+
 	if ( main::INFOLOG && $log->is_info ) {
 		$log->info('Dealing with "' . $request->getRequestString . '" event');
 		$log->info('Currently playing: ' . ($song ? $song->track->url : 'unk'));
@@ -493,17 +505,17 @@ sub _onPlaylistEvent {
 
 sub isRP {
 	my ($url, $coverUrl) = @_;
-	
+
 	$coverUrl ||= '';
-	
+
 	return $url =~ $radioUrlRegex || $coverUrl =~ /radioparadise\.com/
 }
 
 sub cleanupPlaylist {
 	my ( $class, $client, $force ) = @_;
-	
+
 	return unless $client;
-	
+
 	$client = $client->master;
 
 	my $current = ($client->playingSong && $client->playingSong->track && $client->playingSong->track->url) || '';
@@ -524,11 +536,11 @@ sub cleanupPlaylist {
 			$client->pluginData('rp_psd_prefs' => undef);
 		}
 	}
-	
+
 	my $x = 0;
 	foreach my $track (@{ Slim::Player::Playlist::playList($client) }) {
 		my $url = (blessed $track ? $track->url : $track) || '';
-		
+
 		# remove temporary track, unless it's still playing
 		if ( ($force || $current ne $url) && $url =~ $songUrlRegex ) {
 			$client->execute([ 'playlist', 'delete', $x ]);
@@ -544,11 +556,11 @@ sub shutdownPlugin {
 
 	Slim::Control::Request::unsubscribe(\&_onPlaylistEvent);
 	Slim::Control::Request::unsubscribe(\&_playingElseDone);
-	
+
 	return if main::SLIM_SERVICE;
-	
+
 	main::INFOLOG && $log->info('Resetting all Radio Paradise custom streams...');
-	
+
 	foreach (Slim::Player::Client::clients()) {
 		$class->cleanupPlaylist($_, 1);
 	}
