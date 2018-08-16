@@ -14,16 +14,13 @@ PLUGIN_RADIO_PARADISE_LOSSLESS_3
 	EN	Groovy Mix (FLAC)
 
 PLUGIN_RADIO_PARADISE_AAC320
-	DE	AAC 320kbps wiedergeben
-	EN	Play AAC 320kbps
+	EN	Main Mix (AAC 320kbps)
 
 PLUGIN_RADIO_PARADISE_AAC128
-	DE	AAC 128kbps wiedergeben
-	EN	Play AAC 128kbps
+	EN	Main Mix (AAC 128kbps)
 
 PLUGIN_RADIO_PARADISE_MP3_192
-	DE	MP3 192kbps wiedergeben
-	EN	Play MP3 192kbps
+	EN	Main Mix (MP3 192kbps)
 
 PLUGIN_RADIO_PARADISE_DESC
 	DE	Unterstützung für die "Play Something Different" Funktion von Radio Paradise.
