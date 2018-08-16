@@ -52,6 +52,16 @@ sub getFormatForURL {
 	return $format;
 }
 
+# sub formatOverride {
+# 	my ($class, $song) = @_;
+# 	my $format = $class->getFormatForURL($song->currentTrack()->url);
+
+# 	return 'aac' if $format eq 'mp4';
+# 	return 'flc' if $format eq 'flac';
+
+# 	return $format;
+# }
+
 sub canSeek { 0 }
 sub canDirectStreamSong { 0 }
 
@@ -152,7 +162,7 @@ sub parseDirectHeaders {
 	}
 
 	my $song = $client->streamingSong();
-	$ct =~ s/m4a/aac/i;
+	$ct =~ s/(?:m4a|mp4)/aac/i;
 
 	if ($ct =~ /aac/i) {
 		my ($quality, $format) = _getStreamParams($song->track->url);
@@ -286,11 +296,14 @@ sub getIcon {
 }
 
 sub _getStreamParams {
-	if ( $_[0] =~ m{radioparadise://(.+?)-?(\d)?\.(m4a|aac|flac)}i ) {
+	if ( $_[0] =~ m{radioparadise://(.+?)-?(\d)?\.(m4a|aac|mp4|flac)}i ) {
 		my $quality = $1;
 		my $mix = $2 || 0;
 		my $format = lc($3);
+
+		$format = 'mp4' if $format =~ /m4a|aac/;
 		$quality = 4 if $format eq 'flac';
+
 		return ($quality, $format, $mix);
 	}
 }
