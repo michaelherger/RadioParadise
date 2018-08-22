@@ -68,10 +68,13 @@ sub canDirectStreamSong { 0 }
 sub canDoAction {
 	my ( $class, $client, $url, $action ) = @_;
 
-	# "stop" seems to be called when a user presse FWD...
+	# "stop" seems to be called when a user pressed FWD...
 	if ( $action eq 'stop' ) {
 		my $song = $client->master->streamingSong();
 		$song->pluginData( skip => 1 );
+	}
+	elsif ( $action eq 'pause' || $action eq 'rew' ) {
+		return 0;
 	}
 
 	return 1;
