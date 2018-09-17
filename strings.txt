@@ -23,15 +23,8 @@ PLUGIN_RADIO_PARADISE_MP3_192
 	EN	Main Mix (MP3 192kbps)
 
 PLUGIN_RADIO_PARADISE_DESC
-	DE	Unterstützung für die "Play Something Different" Funktion von Radio Paradise.
-	EN	Allow access to Radio Paradise's "Play Something Different" feature.
-
-PLUGIN_RADIO_PARADISE_PSD
-	EN	Play Something Different (Radio Paradise)
-
-PLUGIN_RADIO_PARADISE_PSD_FAILED
-	DE	"Play Something Different" fehlgeschlagen...
-	EN	Failed to play something different...
+	DE	Radio Paradise verlustfrei! Und ein paar andere Funktionen.
+	EN	Lossless Radio Paradise - and then some.
 
 PLUGIN_RADIO_PARADISE_ENABLE_HD
 	DE	Radio Paradise HD aktivieren
