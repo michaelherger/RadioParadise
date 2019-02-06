@@ -12,6 +12,9 @@ use Slim::Utils::Timers;
 
 use constant BASE_URL => 'https://api.radioparadise.com/api/get_block?bitrate=%s&chan=%s&info=true&src=alexa%s';
 
+# skip very short segments, like eg. some announcements, they seem to cause timing or buffering issues
+use constant MIN_EVENT_LENGTH => 20;
+
 my %AAC_BITRATE = (
 	0 => 32,
 	1 => 64,
@@ -112,25 +115,7 @@ sub getNextTrack {
 	main::INFOLOG && $log->info("Fetching new block of events: $url");
 
 	Slim::Networking::SimpleAsyncHTTP->new(
-		sub {
-			my $response = shift;
-
-			my $result = eval { from_json($response->content) };
-
-			$@ && $log->error($@);
-			main::INFOLOG && $log->is_info && $log->info(Data::Dump::dump($result));
-
-			if ($result && ref $result && $result->{song}) {
-				# XXX - remove once enabled
-				$result->{url} .= '?src=alexa';
-
-				$song->pluginData(blockData => $result);
-				$song->pluginData(ttl => 0);
-				$song->streamUrl($result->{url});
-			}
-
-			$successCb->();
-		},
+		\&_gotNewTrack,
 		sub {
 			my ($http, $error) = @_;
 
@@ -139,8 +124,39 @@ sub getNextTrack {
 		},
 		{
 			timeout => 15,
+			cb => $successCb,
+			ecb => $errorCb,
+			song => $song,
 		},
 	)->get($url);
+}
+
+sub _gotNewTrack {
+	my $http = shift;
+
+	my $result = eval { from_json($http->content) };
+
+	$@ && $log->error($@);
+	main::INFOLOG && $log->is_info && $log->info(Data::Dump::dump($result));
+
+	if ($result && ref $result && $result->{song}) {
+		my $song = $http->params('song');
+		$song->pluginData(blockData => $result);
+
+		if ($result->{length} * 1 < MIN_EVENT_LENGTH) {
+			main::INFOLOG && $log->is_info && $log->info('Event is too short: ' . $result->{length} . ' ' . Data::Dump::dump($result));
+			__PACKAGE__->getNextTrack($song, $http->params('cb'), $http->params('ecb'));
+			return;
+		}
+
+		# XXX - remove once enabled
+		$result->{url} .= '?src=alexa';
+
+		$song->pluginData(ttl => 0);
+		$song->streamUrl($result->{url});
+	}
+
+	$http->params('cb')->();
 }
 
 # we ignore most of this... only return a fake bitrate, and the content type. Length would create a progress bar
@@ -186,16 +202,16 @@ sub getMetadataFor {
 	my $song = $forceCurrent ? $client->streamingSong() : $client->playingSong();
 	return {} unless $song;
 
-	if ( $song->pluginData('blockData') && $song->pluginData('ttl') 
-		&& $song->pluginData('blockData')->{url} eq $song->streamUrl 
-		&& $song->pluginData('ttl') - time > 5 
-		&& (my $meta = $song->pluginData('meta')) 
+	if ( $song->pluginData('blockData') && $song->pluginData('ttl')
+		&& $song->pluginData('blockData')->{url} eq $song->streamUrl
+		&& $song->pluginData('ttl') - time > 5
+		&& (my $meta = $song->pluginData('meta'))
 	) {
 		main::DEBUGLOG && $log->is_debug && $log->debug("Returning cached metadata");
 		return $meta;
 	}
 
-	main::INFOLOG && $log->is_info && $log->info("Refreshing metadata");
+	main::DEBUGLOG && $log->is_debug && $log->debug("Refreshing metadata");
 	my $icon = $class->getIcon();
 
 	if ( my $cached = $song->pluginData('blockData') ) {
