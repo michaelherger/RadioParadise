@@ -1,0 +1,8 @@
+[% PROCESS settings/header.html %]
+
+[% WRAPPER setting title="PLUGIN_RADIO_PARADISE" desc="" %]
+<input type="checkbox" name="pref_skipShortTracks" id="skipShortTracks" value="1" [% IF prefs.skipShortTracks %]checked[% END %]>
+<label for="skipShortTracks">Skip Ads</label>
+[% END %]
+
+[% PROCESS settings/footer.html %]

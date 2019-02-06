@@ -8,12 +8,15 @@ use JSON::XS::VersionOneAndTwo;
 use Slim::Networking::SimpleAsyncHTTP;
 
 use Slim::Utils::Log;
+use Slim::Utils::Prefs;
 use Slim::Utils::Timers;
 
 use constant BASE_URL => 'https://api.radioparadise.com/api/get_block?bitrate=%s&chan=%s&info=true&src=alexa%s';
 
 # skip very short segments, like eg. some announcements, they seem to cause timing or buffering issues
-use constant MIN_EVENT_LENGTH => 20;
+use constant MIN_EVENT_LENGTH => 15;
+
+my $prefs = preferences('plugin.radioparadise');
 
 my %AAC_BITRATE = (
 	0 => 32,
@@ -143,8 +146,8 @@ sub _gotNewTrack {
 		my $song = $http->params('song');
 		$song->pluginData(blockData => $result);
 
-		if ($result->{length} * 1 < MIN_EVENT_LENGTH) {
-			main::INFOLOG && $log->is_info && $log->info('Event is too short: ' . $result->{length} . ' ' . Data::Dump::dump($result));
+		if ($prefs->get('skipShortTracks') && $result->{length} * 1 < MIN_EVENT_LENGTH) {
+			main::INFOLOG && $log->is_info && $log->info('Event is too short, skipping: ' . $result->{length});
 			__PACKAGE__->getNextTrack($song, $http->params('cb'), $http->params('ecb'));
 			return;
 		}

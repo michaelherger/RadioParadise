@@ -53,6 +53,11 @@ sub initPlugin {
 
 	$VERSION = $class->_pluginDataFor('version');
 
+	if (main::WEBUI) {
+		require Plugins::RadioParadise::Settings;
+		Plugins::RadioParadise::Settings->new();
+	}
+
 	Slim::Menu::TrackInfo->registerInfoProvider( radioparadise => (
 		isa => 'top',
 		func   => \&nowPlayingInfoMenu,
