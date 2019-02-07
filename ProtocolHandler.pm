@@ -269,7 +269,7 @@ sub getMetadataFor {
 			my $notify;
 
 			# if track has not changed yet, check in a few seconds again...
-			if (abs($songtime) < 20_000 && $song->pluginData('meta') && $song->pluginData('meta')->{song_id} == $meta->{song_id}) {
+			if ($currentDuration > 20 && abs($songtime) < 20_000 && $song->pluginData('meta') && $song->pluginData('meta')->{song_id} == $meta->{song_id}) {
 				main::INFOLOG && $log->is_info && $log->info("Not sure I'm in the right place - scheduling another update soon");
 				$song->pluginData(ttl => time() + 5);
 			}
