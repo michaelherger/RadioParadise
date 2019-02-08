@@ -216,7 +216,7 @@ sub nowPlayingInfoMenu {
 					Slim::Utils::Timers::killTimers(undef, \&_getHDImage);
 
 					Slim::Utils::Cache->new()->set( "remote_image_$url", $artworkUrl, 3600 );
-					$song->pluginData( httpCover => $artworkUrl );
+					$song->pluginData( httpCover => '' );
 					$client->master->pluginData( rpHD => '' );
 
 					Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
@@ -273,10 +273,12 @@ sub _getHDImage {
 	my $song = $client->streamingSong();
 
 	# cut short if we have slideshow information from the flac's metadata
-	if ( $song && $song->pluginData('ttl') && $song->pluginData('meta') && ($song->pluginData('ttl') - time) > 0 && (my $meta = $song->pluginData('meta')) ) {
-		if ( $meta->{slideshow} && (my ($nextSlide) = shift @{$meta->{slideshow}} ) ) {
-			my $artworkUrl = 'https:' . $song->pluginData('blockData')->{image_base} . HD_PATH . $nextSlide . '.jpg';
-			$meta->{cover} = $artworkUrl;
+	if ( $song && $song->pluginData('lastSongId')        # && ($song->pluginData('ttl') - time) > 0 
+		&& (my $slideshow = $song->pluginData('slideshow')) && (my $blockData = Plugins::RadioParadise::ProtocolHandler->getBlockData($song)) 
+	) {
+		if ( ref $slideshow && (my $nextSlide = shift @$slideshow) && (my $imageBase = $blockData->{image_base}) ) {
+			$song->pluginData(slideshow => $slideshow);
+			my $artworkUrl = 'https:' . $imageBase . HD_PATH . $nextSlide . '.jpg';
 			_setArtwork($client, $artworkUrl);
 
 			Slim::Utils::Timers::killTimers(undef, \&_getHDImage);

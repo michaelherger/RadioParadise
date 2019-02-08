@@ -4,6 +4,7 @@ use strict;
 use base qw(Slim::Player::Protocols::HTTPS);
 
 use JSON::XS::VersionOneAndTwo;
+use Tie::Cache::LRU;
 
 use Slim::Networking::SimpleAsyncHTTP;
 
@@ -17,6 +18,7 @@ use constant BASE_URL => 'https://api.radioparadise.com/api/get_block?bitrate=%s
 use constant MIN_EVENT_LENGTH => 15;
 
 my $prefs = preferences('plugin.radioparadise');
+tie my %blockData, 'Tie::Cache::LRU', 16;
 
 my %AAC_BITRATE = (
 	0 => 32,
@@ -101,7 +103,7 @@ sub getNextTrack {
 	my $client = $song->master;
 	my $event = '';
 
-	if ( my $blockData = $song->pluginData('blockData') ) {
+	if ( my $blockData = $class->getBlockData($song) ) {
 		# on skip we can get the next track
 		if ( $song->pluginData('skip') ) {
 			$event = '&event=' . $blockData->{event} . '&elapsed=' . Slim::Player::Source::songTime($client);
@@ -144,7 +146,7 @@ sub _gotNewTrack {
 
 	if ($result && ref $result && $result->{song}) {
 		my $song = $http->params('song');
-		$song->pluginData(blockData => $result);
+		__PACKAGE__->setBlockData($result);
 
 		if ($prefs->get('skipShortTracks') && $result->{length} * 1 < MIN_EVENT_LENGTH) {
 			main::INFOLOG && $log->is_info && $log->info('Event is too short, skipping: ' . $result->{length});
@@ -154,8 +156,6 @@ sub _gotNewTrack {
 
 		# XXX - remove once enabled
 		$result->{url} .= '?src=alexa';
-
-		$song->pluginData(ttl => 0);
 		$song->streamUrl($result->{url});
 	}
 
@@ -190,8 +190,8 @@ sub parseDirectHeaders {
 		my ($quality, $format) = _getStreamParams($song->track->url);
 		$bitrate = $AAC_BITRATE{$quality} * 1024;
 	}
-	elsif ($length && $song->pluginData('blockData')) {
-		$bitrate = $length * 8 / $song->pluginData('blockData')->{length};
+	elsif ($length && $class->getBlockData($url)) {
+		$bitrate = $length * 8 / $class->getBlockData($url)->{length};
 	}
 
 	#       title, bitrate, metaint, redir, type, length, body
@@ -205,25 +205,13 @@ sub getMetadataFor {
 	my $song = $forceCurrent ? $client->streamingSong() : $client->playingSong();
 	return {} unless $song;
 
-	my $pluginDataIsFresh = $song->pluginData('blockData') && $song->pluginData('ttl')
-		&& $song->pluginData('blockData')->{url} eq $song->streamUrl
-		&& $song->pluginData('ttl') - time > 5;
-
-	if ( (!$client->isPlaying() || $pluginDataIsFresh) && (my $meta = $song->pluginData('meta')) ) {
-		main::DEBUGLOG && $log->is_debug && $log->debug("Returning cached metadata");
-		return $meta;
-	}
-
 	main::DEBUGLOG && $log->is_debug && $log->debug("Refreshing metadata");
 	my $icon = $class->getIcon();
 
-	if ( my $cached = $song->pluginData('blockData') ) {
-		my $songtime = ($song->streamUrl eq $cached->{url})
-			? Slim::Player::Source::songTime($client) * 1000
-			: 0;
-		my $meta;
+	if ( my $cached = $class->getBlockData($song) ) {
+		my $songtime = Slim::Player::Source::songTime($client) * 1000;
 
-		main::INFOLOG && $log->is_info && $log->info(sprintf("Current playtime in block (%s): %.1f", $song->streamUrl, $songtime/1000));
+		main::DEBUGLOG && $log->is_debug && $log->debug(sprintf("Current playtime in block (%s): %.1f", $song->streamUrl, $songtime/1000));
 
 		my ($quality, $format) = _getStreamParams($song->track()->url);
 
@@ -235,23 +223,22 @@ sub getMetadataFor {
 			$bitrate = $AAC_BITRATE{$quality} . 'k CBR AAC';
 		}
 
-		my $currentDuration = 0;
+		my $remainingTimeInBlock = 0;
+		my $meta;
 
 		foreach (sort keys %{$cached->{song}}) {
 			my $songdata = $cached->{song}->{$_};
-			$songtime -= $songdata->{duration};
 
-			if ($songtime <= 0) {
-				$currentDuration = $songdata->{duration} / 1000;
+			if ($songtime <= $songdata->{elapsed} + $songdata->{duration}) {
+				$remainingTimeInBlock = ($songdata->{elapsed} + $songdata->{duration} - $songtime) / 1000;
 
 				$meta = {
 					artist => $songdata->{artist},
 					album  => $songdata->{album},
 					title  => $songdata->{title},
 					year   => $songdata->{year},
-					# this should be songdata->duration only, really, but LMS gets confused in some places, returning the track length in one case, overall length in others.
-					duration => $cached->{length} || $currentDuration,
-					secs   => $cached->{length} || $currentDuration,
+					duration => $cached->{length},
+					secs   => $cached->{length},
 					cover  => $song->pluginData('httpCover') || 'https:' . $cached->{image_base} . $songdata->{cover},
 					bitrate=> $bitrate,
 					song_id => $songdata->{song_id},
@@ -265,31 +252,26 @@ sub getMetadataFor {
 			}
 		}
 
+
 		if ($meta) {
-			my $notify;
-
-			# if track has not changed yet, check in a few seconds again...
-			if ($currentDuration > 20 && abs($songtime) < 20_000 && $song->pluginData('meta') && $song->pluginData('meta')->{song_id} == $meta->{song_id}) {
-				main::INFOLOG && $log->is_info && $log->info("Not sure I'm in the right place - scheduling another update soon");
-				$song->pluginData(ttl => time() + 5);
+			if ($song->pluginData('lastSongId') != $meta->{song_id}) {
+				$song->pluginData(slideshow => $meta->{slideshow});
+				$song->pluginData( lastSongId => $meta->{song_id});
+				main::INFOLOG && $log->is_info && $log->info("Signaling metadata update");
+				Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
 			}
-			else {
-				main::INFOLOG && $log->is_info && $log->info("Scheduling an update for the end of this song: " . int($currentDuration));
-				$song->pluginData(ttl => time() + $currentDuration);
-				$notify = 1;
-			}
-			$song->pluginData(meta => $meta);
-
-			Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] ) if $notify;
 
 			if ($songtime) {
 				Slim::Utils::Timers::killTimers($client, \&_metadataUpdate);
-				Slim::Utils::Timers::setTimer($client, $song->pluginData('ttl'), \&_metadataUpdate);
+				main::DEBUGLOG && $log->is_debug && $log->debug("Scheduling an update for the end of this song: " . int($remainingTimeInBlock));
+				Slim::Utils::Timers::setTimer($client, time() + $remainingTimeInBlock, \&_metadataUpdate);
 			}
 
 			return $meta;
 		}
 	}
+
+	$song->pluginData(slideshow => '');
 
 	return {
 		icon    => $icon,
@@ -308,9 +290,28 @@ sub getMetadataFor {
 
 sub _metadataUpdate {
 	my ($client) = @_;
-	main::INFOLOG && $log->is_info && $log->info("Scheduled metadata update");
+	main::INFOLOG && $log->is_info && $log->info("Running scheduled metadata update");
 	Slim::Utils::Timers::killTimers($client, \&_metadataUpdate);
 	Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
+}
+
+sub getBlockData {
+	my ($class, $song) = @_;
+	return $blockData{_cleanupBlockURL(ref $song ? $song->streamUrl() : $song)};
+}
+
+sub setBlockData {
+	my ($class, $data) = @_;
+
+	return unless $data && ref $data && $data->{url};
+
+	$blockData{_cleanupBlockURL($data->{url})} = $data;
+}
+
+sub _cleanupBlockURL {
+	my $url = shift || '';
+	$url =~ s/\?.*//;
+	return $url;
 }
 
 sub getIcon {
