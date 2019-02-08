@@ -205,11 +205,11 @@ sub getMetadataFor {
 	my $song = $forceCurrent ? $client->streamingSong() : $client->playingSong();
 	return {} unless $song;
 
-	if ( $song->pluginData('blockData') && $song->pluginData('ttl')
+	my $pluginDataIsFresh = $song->pluginData('blockData') && $song->pluginData('ttl')
 		&& $song->pluginData('blockData')->{url} eq $song->streamUrl
-		&& $song->pluginData('ttl') - time > 5
-		&& (my $meta = $song->pluginData('meta'))
-	) {
+		&& $song->pluginData('ttl') - time > 5;
+
+	if ( (!$client->isPlaying() || $pluginDataIsFresh) && (my $meta = $song->pluginData('meta')) ) {
 		main::DEBUGLOG && $log->is_debug && $log->debug("Returning cached metadata");
 		return $meta;
 	}
