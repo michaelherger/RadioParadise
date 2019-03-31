@@ -160,7 +160,6 @@ sub _gotNewTrack {
 				$result->{song}->{$songkeys[-1] + 1} = {
 					album    => "Commercial-free",
 					artist   => "",
-					# cover    => __PACKAGE__->getIcon(),
 					duration => $result->{length} * 1000 - ($lastsong->{elapsed} + $lastsong->{duration}),
 					elapsed  => $lastsong->{elapsed} + $lastsong->{duration},
 					event    => $lastsong->{event},
@@ -263,12 +262,9 @@ sub getMetadataFor {
 
 		my $songdata;
 		my $index;
-		my $duration = $cached->{length} * 1000;
 
 		foreach $index (sort keys %{$cached->{song}}) {
 			$songdata = $cached->{song}->{$index};
-			last if !$songdata->{duration};
-			$duration = $songdata->{duration};
 			last if $songtime <= $songdata->{elapsed} + $songdata->{duration};
 		}
 
@@ -286,7 +282,7 @@ sub getMetadataFor {
 			}
 
 			if (main::INFOLOG && $log->is_info) {
-				$bitrate .=  sprintf(" (%u/%u - %u:%02u)", $index, scalar(keys %{$cached->{song}}), $cached->{length}/60, int($cached->{length} % 60));
+				$bitrate .=  sprintf(" (%u/%u - %u:%02u)", $index + 1, scalar(keys %{$cached->{song}}), $cached->{length}/60, int($cached->{length} % 60));
 			}
 
 			$meta = {
@@ -294,8 +290,8 @@ sub getMetadataFor {
 				album  => $songdata->{album},
 				title  => $songdata->{title},
 				year   => $songdata->{year},
-				duration => $duration / 1000,
-				secs   => $duration / 1000,
+				duration => $songdata->{duration} / 1000,
+				secs   => $songdata->{duration} / 1000,
 				cover  => $song->pluginData('httpCover') || ($songdata->{cover} ? 'https:' . $cached->{image_base} . $songdata->{cover} : $icon),
 				bitrate=> $bitrate,
 				slideshow => [ split(/,/, ($songdata->{slideshow} || '')) ],
@@ -310,16 +306,15 @@ sub getMetadataFor {
 		my $remainingTimeInBlock;
 
 		if ($song->pluginData('lastSongId') != $songdata->{song_id}) {
-			$remainingTimeInBlock = ($songdata->{elapsed} + $duration - $songtime) / 1000;
+			$remainingTimeInBlock = ($songdata->{elapsed} + $songdata->{duration} - $songtime) / 1000;
 
 			$song->pluginData(lastSongId => $songdata->{song_id});
-			$song->duration($duration / 1000);
-			$song->startOffset(-$songdata->{elapsed});
+			$song->duration($songdata->{duration} / 1000);
+			$song->startOffset(-$songdata->{elapsed} / 1000);
 
 			Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
-			$log->info("duration $duration and offset $songdata->{elapsed}");
 		} elsif (!$url) {
-			$remainingTimeInBlock = ($songdata->{elapsed} + $duration - $songtime) / 1000;
+			$remainingTimeInBlock = ($songdata->{elapsed} + $songdata->{duration} - $songtime) / 1000;
 			$remainingTimeInBlock = 1 if $remainingTimeInBlock <= 0;
 		}
 
