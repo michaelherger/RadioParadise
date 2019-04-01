@@ -263,8 +263,8 @@ sub getMetadataFor {
 		my $songdata;
 		my $index;
 
-		foreach $index (sort keys %{$cached->{song}}) {
-			$songdata = $cached->{song}->{$index};
+		foreach (sort keys %{$cached->{song}}) {
+			$songdata = $cached->{song}->{$index = $_};
 			last if $songtime <= $songdata->{elapsed} + $songdata->{duration};
 		}
 
