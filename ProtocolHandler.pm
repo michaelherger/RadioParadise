@@ -13,7 +13,7 @@ use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 use Slim::Utils::Timers;
 
-use constant BASE_URL => 'https://api.radioparadise.com/api/get_block?bitrate=%s&chan=%s&info=true&src=alexa%s';
+use constant BASE_URL => 'https://api.radioparadise.com/api/get_block?bitrate=%s&chan=%s&info=true%s';
 
 # skip very short segments, like eg. some announcements, they seem to cause timing or buffering issues
 use constant MIN_EVENT_LENGTH => 15;
@@ -172,8 +172,6 @@ sub _gotNewTrack {
 		my $song = $http->params('song');
 		__PACKAGE__->setBlockData($result);
 
-		# XXX - remove once enabled
-		$result->{url} .= '?src=alexa';
 		$song->streamUrl($result->{url});
 	}
 
