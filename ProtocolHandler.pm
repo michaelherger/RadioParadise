@@ -256,7 +256,8 @@ sub getMetadataFor {
 	}
 
 	if ($cached) {
-		my $songtime = $client->songElapsedSeconds * 1000;
+		my $timeOffset = $song->seekdata->{timeOffset} if $song->seekdata;
+		my $songtime = ($client->songElapsedSeconds + $timeOffset) * 1000;
 
 		main::DEBUGLOG && $log->is_debug && $log->debug(sprintf("Current playtime in block (%s): %.1f (current %s)", $song->streamUrl, $songtime / 1000, $forceCurrent || 0));
 
@@ -310,7 +311,8 @@ sub getMetadataFor {
 
 			$song->pluginData(lastSongId => $songdata->{song_id});
 			$song->duration($songdata->{duration} / 1000);
-			$song->startOffset(-$songdata->{elapsed} / 1000);
+			$song->startOffset($timeOffset - $songdata->{elapsed} / 1000);
+			main::INFOLOG && $log->is_info && $log->info("duration: $songdata->{duration}, startOffset: $songdata->{elapsed}, totalsec: $songtime, track: ", Slim::Player::Source::songTime($client));
 
 			Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
 		} elsif (!$url) {
