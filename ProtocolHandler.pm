@@ -172,12 +172,6 @@ sub _gotNewTrack {
 		my $song = $http->params('song');
 		__PACKAGE__->setBlockData($result);
 
-		if ($prefs->get('skipShortTracks') && $result->{length} * 1 < MIN_EVENT_LENGTH) {
-			main::INFOLOG && $log->is_info && $log->info('Event is too short, skipping: ' . $result->{length});
-			__PACKAGE__->getNextTrack($song, $http->params('cb'), $http->params('ecb'));
-			return;
-		}
-
 		# XXX - remove once enabled
 		$result->{url} .= '?src=alexa';
 		$song->streamUrl($result->{url});
