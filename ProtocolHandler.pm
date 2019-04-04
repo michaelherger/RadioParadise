@@ -148,14 +148,15 @@ sub _gotNewTrack {
 		my @songkeys = sort keys %{$result->{song}};
 		my $lastsong = $result->{song}->{$songkeys[-1]};
 
-		# add a virtual track for the optional audio commentary (last track)
-		if ($result->{length} * 1000 > $lastsong->{elapsed} + $lastsong->{duration}) {
+		# add a virtual track for the optional audio commentary (last track) or correct last track duration when rounding error
+		my $gap = $result->{length} * 1000 - ($lastsong->{elapsed} + $lastsong->{duration});
+		if ($gap) {
 			# announcements sometimes come in their own block, with a duration of 0, but length defined
 			if (scalar @songkeys == 1 && $lastsong->{duration} == 0) {
 				main::INFOLOG && $log->is_info && $log->info("Title duration of a single block track is zero. Set to the block's length.");
 				$lastsong->{duration} = $result->{length} * 1000;
 			}
-			else {
+			elsif ($gap > 1000) {
 				main::INFOLOG && $log->is_info && $log->info("Total duration is longer than sum of tracks. Add empty track item to compensate.");
 				$result->{song}->{$songkeys[-1] + 1} = {
 					album    => "Commercial-free",
@@ -166,6 +167,9 @@ sub _gotNewTrack {
 					song_id  => 0,
 					title    => "Radio Paradise",
 				};
+			} 
+			else {
+				$lastsong->{duration} += $gap;
 			}
 		}
 
@@ -304,7 +308,7 @@ sub getMetadataFor {
 			$song->pluginData(lastSongId => $songdata->{song_id});
 			$song->duration($songdata->{duration} / 1000);
 			$song->startOffset($timeOffset - $songdata->{elapsed} / 1000);
-			main::INFOLOG && $log->is_info && $log->info("duration: $songdata->{duration}, startOffset: $songdata->{elapsed}, totalsec: $songtime, track: ", Slim::Player::Source::songTime($client));
+			main::INFOLOG && $log->is_info && $log->info("duration: $songdata->{duration}, startOffset(ms): $songdata->{elapsed}, total(ms): $songtime, track: ", Slim::Player::Source::songTime($client));
 
 			Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
 		} elsif (!$url) {
