@@ -167,14 +167,6 @@ sub handleFeed {
 			type => 'audio',
 			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS_1'),
 			url  => 'radioparadise://4-1.flac',
-		},{
-			type => 'audio',
-			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS_2'),
-			url  => 'radioparadise://4-2.flac',
-		},{
-			type => 'audio',
-			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS_3'),
-			url  => 'radioparadise://4-3.flac',
 		};
 	}
 	else {
