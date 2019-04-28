@@ -72,7 +72,14 @@ sub getFormatForURL {
 # }
 
 sub canSeek { 0 }
-sub canDirectStreamSong { 0 }
+
+# allow players that can handle HTTPS to decide
+sub canDirectStream { 
+	my $class = shift;
+	my $client = shift;
+	my $url = shift;
+	return $class->SUPER::canDirectStream($client, $client->streamingSong->streamUrl, @_);
+}
 
 sub canDoAction {
 	my ( $class, $client, $url, $action ) = @_;
@@ -207,15 +214,16 @@ sub parseDirectHeaders {
 
 	my $song = $client->streamingSong();
 	$ct =~ s/(?:m4a|mp4)/aac/i;
+	$ct = Slim::Music::Info::mimeToType($ct);
 
 	if ($ct =~ /aac/i) {
 		my ($quality, $format) = _getStreamParams($song->track->url);
 		$bitrate = $AAC_BITRATE{$quality} * 1024;
 	}
-	elsif ($length && $class->getBlockData($url)) {
-		$bitrate = $length * 8 / $class->getBlockData($url)->{length};
+	elsif ($length && $class->getBlockData($song)) {
+		$bitrate = $length * 8 / $class->getBlockData($song)->{length};
 	}
-
+	
 	#       title, bitrate, metaint, redir, type, length, body
 	return (undef, $bitrate, 0, undef, $ct, $length, undef);
 }
@@ -350,7 +358,7 @@ sub _metadataUpdate {
 
 sub getBlockData {
 	my ($class, $song) = @_;
-	return $blockData{_cleanupBlockURL(ref $song ? $song->streamUrl() : $song)};
+	return $blockData{_cleanupBlockURL($song->streamUrl)};
 }
 
 sub setBlockData {
