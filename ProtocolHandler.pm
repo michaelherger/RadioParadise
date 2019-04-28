@@ -72,7 +72,13 @@ sub getFormatForURL {
 # }
 
 sub canSeek { 0 }
-sub canDirectStreamSong { 0 }
+sub canDirectStreamSong {
+	my ( $class, $client, $song ) = @_;
+
+	# We need to check with the base class (HTTP) to see if we
+	# are synced or if the user has set mp3StreamingMethod
+	return $class->SUPER::canDirectStream($client, $song->streamUrl(), $class->getFormatForURL());
+}
 
 sub canDoAction {
 	my ( $class, $client, $url, $action ) = @_;
@@ -167,7 +173,7 @@ sub _gotNewTrack {
 					song_id  => 0,
 					title    => "Radio Paradise",
 				};
-			} 
+			}
 			else {
 				$lastsong->{duration} += $gap;
 			}
@@ -207,13 +213,14 @@ sub parseDirectHeaders {
 
 	my $song = $client->streamingSong();
 	$ct =~ s/(?:m4a|mp4)/aac/i;
+	$ct = Slim::Music::Info::mimeToType($ct);
 
 	if ($ct =~ /aac/i) {
 		my ($quality, $format) = _getStreamParams($song->track->url);
 		$bitrate = $AAC_BITRATE{$quality} * 1024;
 	}
-	elsif ($length && $class->getBlockData($url)) {
-		$bitrate = $length * 8 / $class->getBlockData($url)->{length};
+	elsif ($length && $class->getBlockData($song)) {
+		$bitrate = $length * 8 / $class->getBlockData($song)->{length};
 	}
 
 	#       title, bitrate, metaint, redir, type, length, body
@@ -350,7 +357,7 @@ sub _metadataUpdate {
 
 sub getBlockData {
 	my ($class, $song) = @_;
-	return $blockData{_cleanupBlockURL(ref $song ? $song->streamUrl() : $song)};
+	return $blockData{_cleanupBlockURL($song->streamUrl)};
 }
 
 sub setBlockData {
