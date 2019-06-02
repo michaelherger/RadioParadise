@@ -1,7 +1,8 @@
 package Plugins::RadioParadise::ProtocolHandler;
 
 use strict;
-use base qw(Slim::Player::Protocols::HTTPS);
+# XXX - https
+use base qw(Slim::Player::Protocols::HTTP);
 
 use JSON::XS::VersionOneAndTwo;
 use Tie::Cache::LRU;
@@ -181,6 +182,9 @@ sub _gotNewTrack {
 
 		my $song = $http->params('song');
 		__PACKAGE__->setBlockData($result);
+
+		# XXX - https
+		$result->{url} =~ s/^https/http/;
 
 		$song->streamUrl($result->{url});
 	}
@@ -371,6 +375,9 @@ sub setBlockData {
 sub _cleanupBlockURL {
 	my $url = shift || '';
 	$url =~ s/\?.*//;
+
+	# XXX - https
+	$url =~ s/^http:/https:/;
 	return $url;
 }
 
