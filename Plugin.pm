@@ -29,6 +29,7 @@ use constant HD_URL          => 'http://www.radioparadise.com/ajax_image.php?wid
 use constant HD_INTERVAL     => 15;
 use constant HD_PATH         => 'slideshow/720/';
 
+# most lossless features require SSL
 my $canLossless = Slim::Networking::Async::HTTP->hasSSL();
 
 if ($canLossless) {
@@ -102,6 +103,10 @@ sub initPlugin {
 		Slim::Player::ProtocolHandlers->registerHandler(
 			radioparadise => 'Plugins::RadioParadise::ProtocolHandler'
 		);
+
+		# metadata for the "regular" FLAC stream
+		require Plugins::RadioParadise::MetadataProvider;
+		Plugins::RadioParadise::MetadataProvider->init();
 	}
 	else {
 		$log->warn(string('PLUGIN_RADIO_PARADISE_MISSING_SSL'));
