@@ -141,8 +141,28 @@ sub handleFeed {
 	my $items = nowPlayingInfoMenu($client, $url, $track) || [];
 
 	if ($canLossless) {
+		my $main = [{
+			type => 'audio',
+			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS_INTERACTIVE'),
+			url  => 'radioparadise://4.flac',
+		},{
+			type => 'audio',
+			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS'),
+			url  => 'http://stream.radioparadise.com/flac',
+		}];
+
+		my $mellow = [{
+			type => 'audio',
+			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS_INTERACTIVE'),
+			url  => 'radioparadise://4-1.flac',
+		},{
+			type => 'audio',
+			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS'),
+			url  => 'http://stream.radioparadise.com/mellow-flac',
+		}];
+
 		if ( grep /aac/i, Slim::Player::CapabilitiesHelper::supportedFormats($client) ) {
-			unshift @$items, {
+			push @$main, {
 				type => 'audio',
 				name => $client->string('PLUGIN_RADIO_PARADISE_AAC320'),
 				url => 'http://stream.radioparadise.com/aac-320',
@@ -150,44 +170,41 @@ sub handleFeed {
 				type => 'audio',
 				name => $client->string('PLUGIN_RADIO_PARADISE_AAC128'),
 				url => 'http://stream.radioparadise.com/aac-128',
-			},{
+			};
+			
+			
+			push @$mellow, {
 				type => 'audio',
-				name => $client->string('PLUGIN_RADIO_PARADISE_MELLOW_AAC320'),
+				name => $client->string('PLUGIN_RADIO_PARADISE_AAC320'),
 				url => 'http://stream.radioparadise.com/mellow-320',
 			},{
 				type => 'audio',
-				name => $client->string('PLUGIN_RADIO_PARADISE_MELLOW_AAC128'),
+				name => $client->string('PLUGIN_RADIO_PARADISE_AAC128'),
 				url => 'http://stream.radioparadise.com/mellow-128',
 			};
 		}
 		else {
-			unshift @$items, {
+			push @$main, {
 				type => 'audio',
 				name => $client->string('PLUGIN_RADIO_PARADISE_MP3_192'),
 				url => 'http://stream.radioparadise.com/mp3-192',
-			},{
+			};
+			
+			push @$mellow, {
 				type => 'audio',
-				name => $client->string('PLUGIN_RADIO_PARADISE_MELLOW_MP3_192'),
+				name => $client->string('PLUGIN_RADIO_PARADISE_MP3_192'),
 				url => 'http://stream.radioparadise.com/mellow-192',
 			};
 		}
 
 		unshift @$items, {
-			type => 'audio',
-			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS'),
-			url  => 'radioparadise://4.flac',
+			type => 'outline',
+			name => $client->string('PLUGIN_RADIO_PARADISE_MAIN_MIX'),
+			items => $main,
 		},{
-			type => 'audio',
-			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS_MELLOW'),
-			url  => 'radioparadise://4-1.flac',
-		},{
-			type => 'audio',
-			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS_STREAM'),
-			url  => 'http://stream.radioparadise.com/flac',
-		},{
-			type => 'audio',
-			name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS_MELLOW_STREAM'),
-			url  => 'http://stream.radioparadise.com/mellow-flac',
+			type => 'outline',
+			name => $client->string('PLUGIN_RADIO_PARADISE_MELLOW_MIX'),
+			items => $mellow,
 		};
 	}
 	else {

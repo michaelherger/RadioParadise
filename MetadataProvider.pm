@@ -18,6 +18,8 @@ use constant META_URL => 'https://api.radioparadise.com/api/now_playing?chan=%s'
 use constant POLLRATE => 60;
 
 my $flacUrlRegex  = qr/\.radioparadise\.com\/(?:mellow-)?flac/;
+my $lossyUrlRegex  = qr/\.radioparadise\.com\/(?:mellow-|aac-|mp3-)(?:128|192|320)/;
+
 my %channelMap    = (
 	'mellow' => 1
 );
@@ -30,21 +32,37 @@ sub init {
 		match => $flacUrlRegex,
 		func  => \&provider,
 	);
+
+	# they seem to have a problem with artwork on the icecast strams right now - let's grab it on our end for now
+	Slim::Formats::RemoteMetadata->registerParser(
+		match => $lossyUrlRegex,
+		func  => \&parser,
+	);
+
 }
 
 sub provider {
 	my ( $client, $url ) = @_;
 
-	return defaultMeta(undef, $url) unless $client;
+	main::DEBUGLOG && $log->is_debug && $log->debug("Getting metadata for $url");
+	$cache->set( "remote_image_$url", '', 3600 );
+
+	if (!$client) {
+		main::DEBUGLOG && $log->is_debug && $log->debug('No client object provided');
+		return defaultMeta(undef, $url);
+	}
 
 	$client = $client->master;
 
 	if ( !$client->isPlaying && !$client->isPaused ) {
+		main::DEBUGLOG && $log->is_debug && $log->debug('No metadata lookup - player is not playing');
 		return defaultMeta( $client, $url );
 	}
 
 	if ( my $meta = $client->pluginData('metadata') ) {
 		if ( $meta->{_url} eq $url ) {
+			main::INFOLOG && $log->is_info && $log->info("Returning cached date for $url");
+
 			if ( !$meta->{title} ) {
 				$meta->{title} = Slim::Music::Info::getCurrentTitle($url);
 			}
@@ -61,6 +79,17 @@ sub provider {
 	return defaultMeta( $client, $url );
 }
 
+sub parser {
+	my ( $client, $url, $metadata ) = @_;
+
+	if ($metadata !~ /\bstreamUrl\b/i) {
+		main::DEBUGLOG && $log->is_debug && $log->debug("Metadata is missing artwork - let's look it up: ($metadata)");
+		provider($client, $url);
+	}
+
+	return 0;
+}
+
 sub fetchMetadata {
 	my ( $client, $url ) = @_;
 
@@ -73,14 +102,15 @@ sub fetchMetadata {
 
 	# Make sure client is still playing this station
 	if ( Slim::Player::Playlist::url($client) ne $url ) {
-		main::INFOLOG && $log->is_info && $log->info( $client->id . " no longer playing $url, stopping metadata fetch" );
+		main::INFOLOG && $log->is_info && $log->info( $client->id . " no longer playing $url, stopping metadata fetch: " . Slim::Player::Playlist::url($client) );
 		return;
 	}
 
-	my ($channel) = $url =~ m|/(\w*?)?-?flac$|;
+	my ($channel) = $url =~ m{/(\w*?)?-?(?:flac|64|96|128|192|320)};
 	$channel ||= '';
+	($channel) = grep /$channel/i, keys %channelMap;
 
-	main::INFOLOG && $log->is_info && $log->info('This seems to be the ' . ($channel || 'default') . ' mix');
+	main::INFOLOG && $log->is_info && $log->info('This seems to be the ' . ($channel || 'Main') . ' mix');
 
 	my $metaUrl = sprintf(META_URL, $channelMap{$channel});
 
@@ -118,9 +148,13 @@ sub _gotMetadata {
 
 	$meta->{_url} = $url;
 	$meta->{cover} ||= ICON;
-	$meta->{bitrate} = '850k VBR';
-	$meta->{type} = 'FLAC';
 
+	if ($url =~ /\bflac\b/) {
+		$meta->{bitrate} = '850k VBR';
+		$meta->{type} = 'FLAC';
+	}
+
+	$cache->set( "remote_image_$url", $meta->{cover}, 3600 );
 	$client->pluginData( metadata => $meta );
 	Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
 
