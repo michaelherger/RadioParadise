@@ -244,6 +244,8 @@ sub nowPlayingInfoMenu {
 					$song->pluginData( httpCover => '' );
 					$client->master->pluginData( rpHD => '' );
 
+					main::INFOLOG && $log->is_info && $log->info("Ending HD mode for $url");
+
 					Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
 
 					$cb->({
@@ -328,6 +330,8 @@ sub _gotHDImageResponse {
 	$client = $client->master;
 
 	my $artworkUrl = $http->content;
+
+	main::DEBUGLOG && $log->is_debug && $log->debug("Got HD artwork info: $artworkUrl");
 
 	if ($artworkUrl && $artworkUrl =~ /^http/) {
 		$artworkUrl =~ s/ .*//g;

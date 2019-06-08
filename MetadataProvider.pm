@@ -44,15 +44,18 @@ sub init {
 sub provider {
 	my ( $client, $url ) = @_;
 
-	main::DEBUGLOG && $log->is_debug && $log->debug("Getting metadata for $url");
-	$cache->set( "remote_image_$url", '', 3600 );
-
 	if (!$client) {
 		main::DEBUGLOG && $log->is_debug && $log->debug('No client object provided');
 		return defaultMeta(undef, $url);
 	}
 
+	main::DEBUGLOG && $log->is_debug && $log->debug("Getting metadata for $url");
+
 	$client = $client->master;
+
+	if (!$client->pluginData('rpHD')) {
+		$cache->set( "remote_image_$url", '', 3600 );
+	}
 
 	if ( !$client->isPlaying && !$client->isPaused ) {
 		main::DEBUGLOG && $log->is_debug && $log->debug('No metadata lookup - player is not playing');
@@ -61,13 +64,13 @@ sub provider {
 
 	if ( my $meta = $client->pluginData('metadata') ) {
 		if ( $meta->{_url} eq $url ) {
-			main::INFOLOG && $log->is_info && $log->info("Returning cached date for $url");
+			main::INFOLOG && $log->is_info && $log->info("Returning cached data for $url");
 
 			if ( !$meta->{title} ) {
 				$meta->{title} = Slim::Music::Info::getCurrentTitle($url);
 			}
 
-			return $meta;
+			return _fixHDMetadata($client, $url, $meta);
 		}
 	}
 
@@ -102,6 +105,7 @@ sub fetchMetadata {
 
 	# Make sure client is still playing this station
 	if ( Slim::Player::Playlist::url($client) ne $url ) {
+		$client->pluginData( fetchingMeta => 0 );
 		main::INFOLOG && $log->is_info && $log->info( $client->id . " no longer playing $url, stopping metadata fetch: " . Slim::Player::Playlist::url($client) );
 		return;
 	}
@@ -192,17 +196,29 @@ sub _gotMetadataError {
 	);
 }
 
+sub _fixHDMetadata {
+	my ($client, $url, $meta) = @_;
+
+	if ( $client->pluginData('rpHD') && (my $hdImage = $cache->get( "remote_image_$url")) ) {
+		main::DEBUGLOG && $log->is_debug && $log->debug("Replacing artwork with HD image: $hdImage");
+		$meta = Storable::dclone($meta);
+		$meta->{cover} = $meta->{icon} = $hdImage;
+	}
+
+	return $meta;
+}
+
 sub defaultMeta {
 	my ( $client, $url ) = @_;
 
-	return {
+	return _fixHDMetadata($client, $url, {
 		title => Slim::Music::Info::getCurrentTitle($url),
 		icon  => ICON,
 		cover => ICON,
 		type  => cstring($client, 'RADIO'),
 		bitrate => 850_000,
 		type  => 'FLAC'
-	};
+	});
 }
 
 1;
