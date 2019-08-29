@@ -442,12 +442,6 @@ sub _pluginDataFor {
 	return undef;
 }
 
-my $MAX_STATION_ID = $#{STATIONS()};
-
-sub maxStationID {
-	return $MAX_STATION_ID;
-}
-
 my %CHANNEL_MAP = map {
 	$_->{tag} => $_->{id};
 } grep {

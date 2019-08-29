@@ -385,6 +385,7 @@ sub getIcon {
 	return Plugins::RadioParadise::Plugin->_pluginDataFor('icon');
 }
 
+my ($MAX_STATION_ID) = reverse values { Plugins::RadioParadise::Plugin::getChannelMap() };
 sub _getStreamParams {
 	if ( $_[0] =~ m{radioparadise://(.+?)-?(\d)?\.(m4a|aac|mp4|flac)}i ) {
 		my $quality = $1;
@@ -392,7 +393,7 @@ sub _getStreamParams {
 		my $format = lc($3);
 
 		# play default if mix ID is out of known scope
-		$mix = 0 if $mix > Plugins::RadioParadise::Plugin::maxStationID();
+		$mix = 0 if $mix > $MAX_STATION_ID;
 
 		$format = 'mp4' if $format =~ /m4a|aac/;
 		$quality = 4 if $format eq 'flac';
