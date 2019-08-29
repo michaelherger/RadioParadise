@@ -17,9 +17,9 @@ use constant ICON     => Plugins::RadioParadise::Plugin->_pluginDataFor('icon');
 use constant META_URL => 'https://api.radioparadise.com/api/now_playing?chan=%s';
 use constant POLLRATE => 60;
 
-my %channelMap = Plugins::RadioParadise::Plugin::getChannelMap();
+my $channelMap = Plugins::RadioParadise::Plugin::getChannelMap();
 
-my $tags = join('-|', keys %channelMap) . '-';
+my $tags = join('-|', keys %$channelMap) . '-';
 my $flacUrlRegex  = qr/\.radioparadise\.com\/(?:${tags})?flac/;
 my $lossyUrlRegex  = qr/\.radioparadise\.com\/(?:${tags}|aac-|mp3-)(?:128|192|320)/;
 
@@ -111,11 +111,11 @@ sub fetchMetadata {
 
 	my ($channel) = $url =~ m{/(\w*?)?-?(?:flac|64|96|128|192|320)};
 	$channel ||= '';
-	($channel) = grep /$channel/i, keys %channelMap;
+	($channel) = grep /$channel/i, keys %$channelMap;
 
 	main::INFOLOG && $log->is_info && $log->info('This seems to be the ' . ($channel || 'Main') . ' mix');
 
-	my $metaUrl = sprintf(META_URL, $channelMap{$channel});
+	my $metaUrl = sprintf(META_URL, $channelMap->{$channel});
 
 	main::INFOLOG && $log->is_info && $log->info( "Fetching Radio Paradise metadata from $metaUrl" );
 

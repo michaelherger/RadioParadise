@@ -385,7 +385,7 @@ sub getIcon {
 	return Plugins::RadioParadise::Plugin->_pluginDataFor('icon');
 }
 
-my ($MAX_STATION_ID) = reverse values { Plugins::RadioParadise::Plugin::getChannelMap() };
+my ($MAX_STATION_ID) = reverse values %{ Plugins::RadioParadise::Plugin::getChannelMap() };
 sub _getStreamParams {
 	if ( $_[0] =~ m{radioparadise://(.+?)-?(\d)?\.(m4a|aac|mp4|flac)}i ) {
 		my $quality = $1;

@@ -451,7 +451,7 @@ my %CHANNEL_MAP = map {
 } @{STATIONS()};
 
 sub getChannelMap {
-	return %CHANNEL_MAP;
+	return \%CHANNEL_MAP;
 }
 
 1;
