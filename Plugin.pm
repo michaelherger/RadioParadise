@@ -18,7 +18,7 @@ use Slim::Utils::Timers;
 
 use constant STATIONS => [
 	{
-		id => 'main',
+		tag => 'main',
 		name => 'PLUGIN_RADIO_PARADISE_MAIN_MIX',
 		flac_interactive => 'radioparadise://4.flac',
 		flac => 'http://stream.radioparadise.com/flac',
@@ -27,7 +27,8 @@ use constant STATIONS => [
 		mp3 => 'http://stream.radioparadise.com/mp3-192'
 	},
 	{
-		id => 'mellow',
+		tag => 'mellow',
+		id => 1,
 		name => 'PLUGIN_RADIO_PARADISE_MELLOW_MIX',
 		flac_interactive => 'radioparadise://4-1.flac',
 		flac => 'http://stream.radioparadise.com/mellow-flac',
@@ -36,7 +37,8 @@ use constant STATIONS => [
 		mp3 => 'http://stream.radioparadise.com/mellow-192'
 	},
 	{
-		id => 'rock',
+		tag => 'rock',
+		id => 2,
 		name => 'PLUGIN_RADIO_PARADISE_ROCK_MIX',
 		flac_interactive => 'radioparadise://4-2.flac',
 		flac => 'http://stream.radioparadise.com/rock-flac',
@@ -45,7 +47,8 @@ use constant STATIONS => [
 		mp3 => 'http://stream.radioparadise.com/rock-192'
 	},
 	{
-		id => 'eclectic',
+		tag => 'eclectic',
+		id => 3,
 		name => 'PLUGIN_RADIO_PARADISE_ECLECTIC_MIX',
 		flac_interactive => 'radioparadise://4-3.flac',
 		flac => 'http://stream.radioparadise.com/eclectic-flac',
@@ -437,6 +440,22 @@ sub _pluginDataFor {
 	}
 
 	return undef;
+}
+
+my $MAX_STATION_ID = $#{STATIONS()};
+
+sub maxStationID {
+	return $MAX_STATION_ID;
+}
+
+my %CHANNEL_MAP = map {
+	$_->{tag} => $_->{id};
+} grep {
+	$_->{id};
+} @{STATIONS()};
+
+sub getChannelMap {
+	return %CHANNEL_MAP;
 }
 
 1;

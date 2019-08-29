@@ -392,7 +392,7 @@ sub _getStreamParams {
 		my $format = lc($3);
 
 		# play default if mix ID is out of known scope
-		$mix = 0 if $mix > 3;
+		$mix = 0 if $mix > Plugins::RadioParadise::Plugin::maxStationID();
 
 		$format = 'mp4' if $format =~ /m4a|aac/;
 		$quality = 4 if $format eq 'flac';
