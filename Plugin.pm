@@ -187,31 +187,33 @@ sub handleFeed {
 
 		my %stations;
 		foreach (reverse @{STATIONS()}) {
+			my $prefix = $client->string($_->{name}) . ' - ';
+
 			my $stationMenu = [{
 				type => 'audio',
-				name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS_INTERACTIVE'),
+				name => $prefix . $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS_INTERACTIVE'),
 				url  => $_->{flac_interactive},
 			},{
 				type => 'audio',
-				name => $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS'),
+				name => $prefix . $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS'),
 				url  => $_->{flac},
 			}];
 
 			if ($canAAC) {
 				push @$stationMenu, {
 					type => 'audio',
-					name => $client->string('PLUGIN_RADIO_PARADISE_AAC320'),
+					name => $prefix . $client->string('PLUGIN_RADIO_PARADISE_AAC320'),
 					url => $_->{aac_320},
 				},{
 					type => 'audio',
-					name => $client->string('PLUGIN_RADIO_PARADISE_AAC128'),
+					name => $prefix . $client->string('PLUGIN_RADIO_PARADISE_AAC128'),
 					url => $_->{aac_128},
 				};
 			}
 			else {
 				push @$stationMenu, {
 					type => 'audio',
-					name => $client->string('PLUGIN_RADIO_PARADISE_MP3_192'),
+					name => $prefix . $client->string('PLUGIN_RADIO_PARADISE_MP3_192'),
 					url => $_->{mp3},
 				};
 			}
