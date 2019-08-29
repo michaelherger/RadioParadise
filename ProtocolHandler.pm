@@ -391,8 +391,8 @@ sub _getStreamParams {
 		my $mix = $2 || 0;
 		my $format = lc($3);
 
-		# Rock/Groovy are going away - play default instead
-		$mix = 0 if $mix > 1;
+		# play default if mix ID is out of known scope
+		$mix = 0 if $mix > 3;
 
 		$format = 'mp4' if $format =~ /m4a|aac/;
 		$quality = 4 if $format eq 'flac';

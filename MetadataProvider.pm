@@ -17,11 +17,13 @@ use constant ICON     => Plugins::RadioParadise::Plugin->_pluginDataFor('icon');
 use constant META_URL => 'https://api.radioparadise.com/api/now_playing?chan=%s';
 use constant POLLRATE => 60;
 
-my $flacUrlRegex  = qr/\.radioparadise\.com\/(?:mellow-)?flac/;
-my $lossyUrlRegex  = qr/\.radioparadise\.com\/(?:mellow-|aac-|mp3-)(?:128|192|320)/;
+my $flacUrlRegex  = qr/\.radioparadise\.com\/(?:mellow-|rock-|eclectic-)?flac/;
+my $lossyUrlRegex  = qr/\.radioparadise\.com\/(?:mellow-|rock-|eclectic-|aac-|mp3-)(?:128|192|320)/;
 
 my %channelMap    = (
-	'mellow' => 1
+	'mellow' => 1,
+	'rock' => 2,
+	'eclectic' => 3,
 );
 
 my $cache = Slim::Utils::Cache->new();
