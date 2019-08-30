@@ -13,20 +13,24 @@ use Slim::Utils::Log;
 use Slim::Utils::Strings qw(cstring);
 use Slim::Utils::Timers;
 
+use Plugins::RadioParadise::Stations;
+
 use constant ICON     => Plugins::RadioParadise::Plugin->_pluginDataFor('icon');
 use constant META_URL => 'https://api.radioparadise.com/api/now_playing?chan=%s';
 use constant POLLRATE => 60;
 
-my $channelMap = Plugins::RadioParadise::Plugin::getChannelMap();
-
-my $tags = join('-|', keys %$channelMap) . '-';
-my $flacUrlRegex  = qr/\.radioparadise\.com\/(?:${tags})?flac/;
-my $lossyUrlRegex  = qr/\.radioparadise\.com\/(?:${tags}|aac-|mp3-)(?:128|192|320)/;
-
 my $cache = Slim::Utils::Cache->new();
 my $log = logger('plugin.radioparadise');
 
+my $channelMap = {};
+
 sub init {
+	$channelMap = Plugins::RadioParadise::Stations::getChannelMap();
+
+	my $tags = join('-|', keys %$channelMap) . '-';
+	my $flacUrlRegex  = qr/\.radioparadise\.com\/(?:${tags})?flac/;
+	my $lossyUrlRegex  = qr/\.radioparadise\.com\/(?:${tags}|aac-|mp3-)(?:128|192|320)/;
+
 	Slim::Formats::RemoteMetadata->registerProvider(
 		match => $flacUrlRegex,
 		func  => \&provider,
@@ -37,7 +41,6 @@ sub init {
 		match => $lossyUrlRegex,
 		func  => \&parser,
 	);
-
 }
 
 sub provider {

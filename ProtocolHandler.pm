@@ -14,6 +14,8 @@ use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 use Slim::Utils::Timers;
 
+use Plugins::RadioParadise::Stations;
+
 use constant BASE_URL => 'https://api.radioparadise.com/api/get_block?bitrate=%s&chan=%s&info=true%s';
 
 # skip very short segments, like eg. some announcements, they seem to cause timing or buffering issues
@@ -385,7 +387,6 @@ sub getIcon {
 	return Plugins::RadioParadise::Plugin->_pluginDataFor('icon');
 }
 
-my ($MAX_STATION_ID) = reverse values %{ Plugins::RadioParadise::Plugin::getChannelMap() };
 sub _getStreamParams {
 	if ( $_[0] =~ m{radioparadise://(.+?)-?(\d)?\.(m4a|aac|mp4|flac)}i ) {
 		my $quality = $1;
@@ -393,7 +394,7 @@ sub _getStreamParams {
 		my $format = lc($3);
 
 		# play default if mix ID is out of known scope
-		$mix = 0 if $mix > $MAX_STATION_ID;
+		$mix = 0 if $mix > Plugins::RadioParadise::Stations::maxChannelId();
 
 		$format = 'mp4' if $format =~ /m4a|aac/;
 		$quality = 4 if $format eq 'flac';

@@ -6,7 +6,6 @@ use base qw(Slim::Plugin::OPMLBased);
 
 use vars qw($VERSION);
 use Digest::MD5 qw(md5_hex);
-use JSON::XS::VersionOneAndTwo;
 use Scalar::Util qw(blessed);
 
 use Slim::Menu::TrackInfo;
@@ -15,48 +14,6 @@ use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 use Slim::Utils::Strings qw(string);
 use Slim::Utils::Timers;
-
-use constant STATIONS => [
-	{
-		tag => 'main',
-		name => 'PLUGIN_RADIO_PARADISE_MAIN_MIX',
-		flac_interactive => 'radioparadise://4.flac',
-		flac => 'http://stream.radioparadise.com/flac',
-		aac_320 => 'http://stream.radioparadise.com/aac-320',
-		aac_128 => 'http://stream.radioparadise.com/aac-128',
-		mp3 => 'http://stream.radioparadise.com/mp3-192'
-	},
-	{
-		tag => 'mellow',
-		id => 1,
-		name => 'PLUGIN_RADIO_PARADISE_MELLOW_MIX',
-		flac_interactive => 'radioparadise://4-1.flac',
-		flac => 'http://stream.radioparadise.com/mellow-flac',
-		aac_320 => 'http://stream.radioparadise.com/mellow-320',
-		aac_128 => 'http://stream.radioparadise.com/mellow-128',
-		mp3 => 'http://stream.radioparadise.com/mellow-192'
-	},
-	{
-		tag => 'rock',
-		id => 2,
-		name => 'PLUGIN_RADIO_PARADISE_ROCK_MIX',
-		flac_interactive => 'radioparadise://4-2.flac',
-		flac => 'http://stream.radioparadise.com/rock-flac',
-		aac_320 => 'http://stream.radioparadise.com/rock-320',
-		aac_128 => 'http://stream.radioparadise.com/rock-128',
-		mp3 => 'http://stream.radioparadise.com/rock-192'
-	},
-	{
-		tag => 'eclectic',
-		id => 3,
-		name => 'PLUGIN_RADIO_PARADISE_ECLECTIC_MIX',
-		flac_interactive => 'radioparadise://4-3.flac',
-		flac => 'http://stream.radioparadise.com/eclectic-flac',
-		aac_320 => 'http://stream.radioparadise.com/eclectic-320',
-		aac_128 => 'http://stream.radioparadise.com/eclectic-128',
-		mp3 => 'http://stream.radioparadise.com/eclectic-192'
-	},
-];
 
 my $log = Slim::Utils::Log->addLogCategory( {
 	category     => 'plugin.radioparadise',
@@ -149,6 +106,9 @@ sub initPlugin {
 		# metadata for the "regular" FLAC stream
 		require Plugins::RadioParadise::MetadataProvider;
 		Plugins::RadioParadise::MetadataProvider->init();
+
+		require Plugins::RadioParadise::Stations;
+		Plugins::RadioParadise::Stations->init();
 	}
 	else {
 		$log->warn(string('PLUGIN_RADIO_PARADISE_MISSING_SSL'));
@@ -186,31 +146,37 @@ sub handleFeed {
 		my $canAAC = grep(/aac/i, Slim::Player::CapabilitiesHelper::supportedFormats($client)) ? 1 : 0;
 
 		my %stations;
-		foreach (reverse @{STATIONS()}) {
-			my $prefix = $client->string($_->{name}) . ' - ';
+		foreach (reverse @{Plugins::RadioParadise::Stations::getChannelList()}) {
+			my $prefix = getString($client, $_->{name}) . ' - ';
 
-			my $stationMenu = [{
+			my $stationMenu = [];
+
+			push @$stationMenu, {
 				type => 'audio',
 				name => $prefix . $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS_INTERACTIVE'),
 				url  => $_->{flac_interactive},
-			},{
+			} if $_->{flac_interactive};
+
+			push @$stationMenu, {
 				type => 'audio',
 				name => $prefix . $client->string('PLUGIN_RADIO_PARADISE_LOSSLESS'),
 				url  => $_->{flac},
-			}];
+			} if $_->{flac};
 
-			if ($canAAC) {
+			if ($canAAC && ($_->{aac_128} || $_->{aac_320})) {
 				push @$stationMenu, {
 					type => 'audio',
 					name => $prefix . $client->string('PLUGIN_RADIO_PARADISE_AAC320'),
 					url => $_->{aac_320},
-				},{
+				} if $_->{aac_320};
+
+				push @$stationMenu,{
 					type => 'audio',
 					name => $prefix . $client->string('PLUGIN_RADIO_PARADISE_AAC128'),
 					url => $_->{aac_128},
-				};
+				} if $_->{aac_320};
 			}
-			else {
+			elsif ($_->{mp3}) {
 				push @$stationMenu, {
 					type => 'audio',
 					name => $prefix . $client->string('PLUGIN_RADIO_PARADISE_MP3_192'),
@@ -220,7 +186,7 @@ sub handleFeed {
 
 			unshift @$items, {
 				type => 'outline',
-				name => $client->string($_->{name}),
+				name => getString($client, $_->{name}),
 				items => $stationMenu
 			};
 		}
@@ -235,6 +201,13 @@ sub handleFeed {
 	$cb->({
 		items => $items,
 	});
+}
+
+sub getString {
+	my ($client, $stringOrToken) = @_;
+
+	return $stringOrToken if $stringOrToken =~ /(?:[a-z]|\s)/;
+	return $client->string($stringOrToken);
 }
 
 sub nowPlayingInfoMenu {
@@ -318,8 +291,8 @@ sub _getHDImage {
 	my $song = $client->streamingSong();
 
 	# cut short if we have slideshow information from the flac's metadata
-	if ( $song && $song->pluginData('lastSongId')        # && ($song->pluginData('ttl') - time) > 0 
-		&& (my $slideshow = $song->pluginData('slideshow')) && (my $blockData = Plugins::RadioParadise::ProtocolHandler->getBlockData($song)) 
+	if ( $song && $song->pluginData('lastSongId')        # && ($song->pluginData('ttl') - time) > 0
+		&& (my $slideshow = $song->pluginData('slideshow')) && (my $blockData = Plugins::RadioParadise::ProtocolHandler->getBlockData($song))
 	) {
 		if ( ref $slideshow && (my $nextSlide = shift @$slideshow) && (my $imageBase = $blockData->{image_base}) ) {
 			$song->pluginData(slideshow => $slideshow);
@@ -442,16 +415,6 @@ sub _pluginDataFor {
 	}
 
 	return undef;
-}
-
-my %CHANNEL_MAP = map {
-	$_->{tag} => $_->{id};
-} grep {
-	$_->{id};
-} @{STATIONS()};
-
-sub getChannelMap {
-	return \%CHANNEL_MAP;
 }
 
 1;
