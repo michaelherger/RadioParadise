@@ -55,6 +55,7 @@ sub sysread {
 		my $request = HTTP::Request->new( GET => $v->{'url'} ); 
 		$request->header( 'Range', "bytes=$v->{'offset'}-" );
 		$v->{'session'} = Slim::Networking::Async::HTTP->new;
+		$v->{'lastSeen'} = undef;
 			
 		main::DEBUGLOG && $log->is_debug && $log->debug("streaming from $v->{'offset'} for $v->{'url'}");
 	
