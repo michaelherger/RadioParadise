@@ -13,7 +13,6 @@ use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 use Slim::Utils::Timers;
 use Slim::Utils::Errno;
-use Slim::Networking::Async::HTTP;
 
 use Plugins::RadioParadise::Stations;
 
