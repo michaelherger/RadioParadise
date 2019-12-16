@@ -71,19 +71,22 @@ sub sysread {
 			},	
 			onError  => sub { 
 				$v->{'session'} = undef;
+				$v->{'streaming'} = 0;
 				$v->{'errors'}++;
 				$log->error("cannot open session for $v->{'url'} $_[1] ");
 			},
 		} );
 	}
 	
-	# read body data if possible
+	# the child socket should be non-blocking so here we can safely call 
+	# read_entity_body which calls sysread if buffer is empty. This is normally
+	# a LMS callback invoked when select() has something to read on that socket. 
 	my $bytes = $v->{'session'}->socket->read_entity_body($_[1], $maxBytes) if $v->{'streaming'};
-
+	
 	if ( $bytes ) {
 		$v->{'offset'} += $bytes;
 		return $bytes;
-	} elsif ( !defined $bytes && $v->{'errors'} < MAX_ERRORS ){
+	} elsif ( !defined $bytes && $v->{'errors'} < MAX_ERRORS && (!$! || $! == EINTR || $! == EWOULDBLOCK) ){
 		$! = EINTR;
 		main::DEBUGLOG && $log->is_debug && $log->debug("need to wait for $v->{'url'}");
 		return undef;
