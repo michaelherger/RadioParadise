@@ -85,8 +85,9 @@ sub sysread {
 	
 	if ( $bytes ) {
 		$v->{'offset'} += $bytes;
+		$v->{'lastSeen'} = time();
 		return $bytes;
-	} elsif ( !defined $bytes && $v->{'errors'} < MAX_ERRORS && (!$! || $! == EINTR || $! == EWOULDBLOCK) ){
+	} elsif ( !defined $bytes && $v->{'errors'} < MAX_ERRORS && (!$! || $! == EINTR || $! == EWOULDBLOCK) && (!defined $v->{'lastSeen'} || $v->{'lastSeen'} - time() < 10) ){
 		$! = EINTR;
 		main::DEBUGLOG && $log->is_debug && $log->debug("need to wait for $v->{'url'}");
 		return undef;
@@ -95,7 +96,8 @@ sub sysread {
 		main::INFOLOG && $log->is_info && $log->info("end of $v->{'url'}");
 		return 0;
 	} else {
-		$log->warn("unexpected connection close at $v->{'offset'}/$v->{'length'} for $v->{'url'} $_! ");
+		$log->warn("unexpected connection close at $v->{'offset'}/$v->{'length'} (since ", $v->{'lastSeen'} - time(), ") for $v->{'url'} $_! ");
+		$v->{'session'}->disconnect;
 		$v->{'session'} = undef;
 		$v->{'streaming'} = 0;
 		$v->{'errors'}++;
