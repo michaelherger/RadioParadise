@@ -16,7 +16,7 @@ use Slim::Utils::Errno;
 
 use Plugins::RadioParadise::Stations;
 
-use constant BASE_URL 	=> 'https://api.radioparadise.com/api/get_block?bitrate=%s&chan=%s&info=true%s';
+use constant BASE_URL => 'https://api.radioparadise.com/api/get_block?bitrate=4&chan=%s&info=true%s';
 use constant MAX_ERRORS	=> 5;
 
 use constant IDLE 		=> 1;
@@ -167,9 +167,8 @@ sub getNextTrack {
 		}
 	}
 
-	my ($quality, $format, $mix) = _getStreamParams($song->track()->url);
-
-	my $url = sprintf(BASE_URL, $quality, $mix, $event);
+	$song->track()->url =~ m{radioparadise://(.+?)-?(\d+)?}i;
+	my $url = sprintf(BASE_URL, ($2 || 0), $event);
 	main::INFOLOG && $log->info("Fetching new block of events: $url");
 
 	Slim::Networking::SimpleAsyncHTTP->new(
@@ -287,7 +286,6 @@ sub getMetadataFor {
 		my $meta;
 
 		if ($url) {
-			my ($quality, $format) = _getStreamParams($song->track()->url);
 			my $bitrate = int($song->bitrate ? ($song->bitrate / 1024) : 850) . 'k VBR FLAC';
 
 			#if (main::INFOLOG && $log->is_info) {
@@ -384,22 +382,6 @@ sub _cleanupBlockURL {
 
 sub getIcon {
 	return Plugins::RadioParadise::Plugin->_pluginDataFor('icon');
-}
-
-sub _getStreamParams {
-	if ( $_[0] =~ m{radioparadise://(.+?)-?(\d)?\.(m4a|aac|mp4|flac)}i ) {
-		my $quality = $1;
-		my $mix = $2 || 0;
-		my $format = lc($3);
-
-		# play default if mix ID is out of known scope
-		$mix = 0 if $mix > Plugins::RadioParadise::Stations::maxChannelId();
-
-		$format = 'mp4' if $format =~ /m4a|aac/;
-		$quality = 4 if $format eq 'flac';
-
-		return ($quality, $format, $mix);
-	}
 }
 
 1;
