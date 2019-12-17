@@ -16,20 +16,13 @@ use Slim::Utils::Timers;
 
 use Plugins::RadioParadise::Stations;
 
-use constant BASE_URL => 'https://api.radioparadise.com/api/get_block?bitrate=%s&chan=%s&info=true%s';
+use constant BASE_URL => 'https://api.radioparadise.com/api/get_block?bitrate=4&chan=%s&info=true%s';
 
 # skip very short segments, like eg. some announcements, they seem to cause timing or buffering issues
 use constant MIN_EVENT_LENGTH => 15;
 
 my $prefs = preferences('plugin.radioparadise');
 tie my %blockData, 'Tie::Cache::LRU', 16;
-
-my %AAC_BITRATE = (
-	0 => 32,
-	1 => 64,
-	2 => 128,
-	3 => 320,
-);
 
 my $log = logger('plugin.radioparadise');
 
@@ -43,37 +36,19 @@ sub new {
 	my $song      = $args->{'song'};
 	my $streamUrl = $song->streamUrl() || return;
 
-	my ($quality, $format) = _getStreamParams( $args->{url} );
-
 	my $sock = $class->SUPER::new( {
 		url     => $streamUrl,
 		song    => $args->{'song'},
 		client  => $client,
-		bitrate => $quality < 4 ? $AAC_BITRATE{$quality} * 1024 : 850_000,
+		bitrate => 850_000,
 	} ) || return;
 
-	${*$sock}{contentType} = 'audio/' . $format;
+	${*$sock}{contentType} = 'audio/flac';
 
 	return $sock;
 }
 
-sub getFormatForURL {
-	my ($class, $url) = @_;
-
-	my (undef, $format) = _getStreamParams( $url );
-	return $format;
-}
-
-# sub formatOverride {
-# 	my ($class, $song) = @_;
-# 	my $format = $class->getFormatForURL($song->currentTrack()->url);
-
-# 	return 'aac' if $format eq 'mp4';
-# 	return 'flc' if $format eq 'flac';
-
-# 	return $format;
-# }
-
+sub getFormatForURL { 'flac' }
 sub canSeek { 0 }
 sub canDirectStreamSong {
 	my ( $class, $client, $song ) = @_;
@@ -124,9 +99,8 @@ sub getNextTrack {
 		}
 	}
 
-	my ($quality, $format, $mix) = _getStreamParams($song->track()->url);
-
-	my $url = sprintf(BASE_URL, $quality, $mix, $event);
+	$song->track()->url =~ m{radioparadise://(.+?)-?(\d+)?}i;
+	my $url = sprintf(BASE_URL, ($2 || 0), $event);
 	main::INFOLOG && $log->info("Fetching new block of events: $url");
 
 	Slim::Networking::SimpleAsyncHTTP->new(
@@ -221,13 +195,7 @@ sub parseDirectHeaders {
 	$ct =~ s/(?:m4a|mp4)/aac/i;
 	$ct = Slim::Music::Info::mimeToType($ct);
 
-	if ($ct =~ /aac/i) {
-		my ($quality, $format) = _getStreamParams($song->track->url);
-		$bitrate = $AAC_BITRATE{$quality} * 1024;
-	}
-	elsif ($length && $class->getBlockData($song)) {
-		$bitrate = $length * 8 / $class->getBlockData($song)->{length};
-	}
+	$bitrate = $length * 8 / $class->getBlockData($song)->{length};
 
 	#       title, bitrate, metaint, redir, type, length, body
 	return (undef, $bitrate, 0, undef, $ct, $length, undef);
@@ -281,15 +249,7 @@ sub getMetadataFor {
 		my $meta;
 
 		if ($url) {
-			my ($quality, $format) = _getStreamParams($song->track()->url);
-			my $bitrate = '';
-
-			if ($quality == 4 || $format eq 'flac') {
-				$bitrate = int($song->bitrate ? ($song->bitrate / 1024) : 850) . 'k VBR FLAC';
-			}
-			elsif ($quality < 4) {
-				$bitrate = $AAC_BITRATE{$quality} . 'k CBR AAC';
-			}
+			my $bitrate = int($song->bitrate ? ($song->bitrate / 1024) : 850) . 'k VBR FLAC';
 
 			if (main::INFOLOG && $log->is_info) {
 				$bitrate .=  sprintf(" (%u/%u - %u:%02u)", $index + 1, scalar(keys %{$cached->{song}}), $cached->{length}/60, int($cached->{length} % 60));
@@ -385,22 +345,6 @@ sub _cleanupBlockURL {
 
 sub getIcon {
 	return Plugins::RadioParadise::Plugin->_pluginDataFor('icon');
-}
-
-sub _getStreamParams {
-	if ( $_[0] =~ m{radioparadise://(.+?)-?(\d)?\.(m4a|aac|mp4|flac)}i ) {
-		my $quality = $1;
-		my $mix = $2 || 0;
-		my $format = lc($3);
-
-		# play default if mix ID is out of known scope
-		$mix = 0 if $mix > Plugins::RadioParadise::Stations::maxChannelId();
-
-		$format = 'mp4' if $format =~ /m4a|aac/;
-		$quality = 4 if $format eq 'flac';
-
-		return ($quality, $format, $mix);
-	}
 }
 
 1;
