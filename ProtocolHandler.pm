@@ -52,7 +52,10 @@ sub close {
 	my $self = shift;
 	my $v = ${*$self}{'vars'};
 	$v->{'session'}->disconnect;
+	$v->{'status'} = IDLE;
+	$v->{'offset'} = 0;
 	$self->SUPER::close();
+	$log->error("closing $v->{'url'}");
 }
 
 sub sysread {
@@ -69,6 +72,7 @@ sub sysread {
 		$v->{'lastSeen'} = undef;
 			
 		main::DEBUGLOG && $log->is_debug && $log->debug("streaming from $v->{'offset'} for $v->{'url'}");
+		$log->error("streaming from $v->{'offset'} for $v->{'url'}");
 	
 		$v->{'session'}->send_request( {
 			request     => $request,
@@ -80,6 +84,7 @@ sub sysread {
 				$v->{'song'}->bitrate($v->{'length'} * 8 / getBlockData(undef, $v->{'song'})->{length}) if $v->{'length'};
 				Slim::Control::Request::notifyFromArray( $v->{'song'}->master, [ 'newmetadata' ] );
 				main::INFOLOG && $log->is_info && $log->info("length ", $v->{'length'} || 0, " setting bitrate ", int ($v->{'song'}->bitrate), " for $v->{'url'}");
+				$log->error("length ", $v->{'length'} || 0, " setting bitrate ", int ($v->{'song'}->bitrate), " for $v->{'url'}");
 			},	
 			onError  => sub { 
 				$v->{'session'}->disconnect;
@@ -99,13 +104,14 @@ sub sysread {
 		$v->{'offset'} += $bytes;
 		$v->{'lastSeen'} = time();
 		return $bytes;
-	} elsif ( !defined $bytes && $v->{'errors'} < MAX_ERRORS && (!$! || $! == EINTR || $! == EWOULDBLOCK) && (!defined $v->{'lastSeen'} || $v->{'lastSeen'} - time() < 10) ){
+	} elsif ( !defined $bytes && $v->{'errors'} < MAX_ERRORS && ($v->{'status'} != CONNECTED || $! == EINTR || $! == EWOULDBLOCK) && (!defined $v->{'lastSeen'} || $v->{'lastSeen'} - time() < 10) ){
 		$! = EINTR;
 		main::DEBUGLOG && $log->is_debug && $log->debug("need to wait for $v->{'url'}");
 		return undef;
 	} elsif ( !$v->{'length'} || $v->{'offset'} == $v->{'length'} || $v->{'errors'} >= MAX_ERRORS ) {
 		$v->{'session'}->disconnect;
-		main::INFOLOG && $log->is_info && $log->info("end of $v->{'url'}");
+		main::INFOLOG && $log->is_info && $log->info("end of $v->{'url'} s:", $v->{'lastSeen'} - time(), " e:$v->{'errors'} c:$!");
+		$log->error("end of $v->{'url'} $!");
 		return 0;
 	} else {
 		$log->warn("unexpected connection close at $v->{'offset'}/$v->{'length'} (since ", $v->{'lastSeen'} - time(), ") for $v->{'url'} $_! ");
