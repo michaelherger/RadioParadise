@@ -110,11 +110,11 @@ sub sysread {
 		return undef;
 	} elsif ( !$v->{'length'} || $v->{'offset'} == $v->{'length'} || $v->{'errors'} >= MAX_ERRORS ) {
 		$v->{'session'}->disconnect;
-		main::INFOLOG && $log->is_info && $log->info("end of $v->{'url'} s:", $v->{'lastSeen'} - time(), " e:$v->{'errors'} c:$!");
+		main::INFOLOG && $log->is_info && $log->info("end of $v->{'url'} s:", time() - $v->{'lastSeen'}, " e:$v->{'errors'} c:$!");
 		$log->error("end of $v->{'url'} $!");
 		return 0;
 	} else {
-		$log->warn("unexpected connection close at $v->{'offset'}/$v->{'length'} (since ", $v->{'lastSeen'} - time(), ") for $v->{'url'} $_! ");
+		$log->warn("unexpected connection close at $v->{'offset'}/$v->{'length'} (since ", time() - $v->{'lastSeen'}, ") for $v->{'url'} $_! ");
 		$v->{'session'}->disconnect;
 		$v->{'status'} = IDLE;
 		$v->{'errors'}++;
