@@ -104,7 +104,7 @@ sub sysread {
 		$v->{'offset'} += $bytes;
 		$v->{'lastSeen'} = time();
 		return $bytes;
-	} elsif ( !defined $bytes && $v->{'errors'} < MAX_ERRORS && ($v->{'status'} != CONNECTED || $! == EINTR || $! == EWOULDBLOCK) && (!defined $v->{'lastSeen'} || $v->{'lastSeen'} - time() < 10) ){
+	} elsif ( !defined $bytes && $v->{'errors'} < MAX_ERRORS && ($v->{'status'} != CONNECTED || $! == EINTR || $! == EWOULDBLOCK) && (!defined $v->{'lastSeen'} || time() - $v->{'lastSeen'} < 5) ){
 		$! = EINTR;
 		main::DEBUGLOG && $log->is_debug && $log->debug("need to wait for $v->{'url'}");
 		return undef;
