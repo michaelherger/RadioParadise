@@ -7,7 +7,6 @@ use JSON::XS::VersionOneAndTwo;
 use Tie::Cache::LRU;
 use POSIX qw(ceil);
 use List::Util qw(min max);
-use AnyEvent::DNS;
 
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
@@ -36,15 +35,15 @@ sub new {
 	my $streamUrl = $song->streamUrl || return;
 	my $sock = $class->SUPER::new;
 
-	${*$sock}{'vars'}   = { 	       		# variables which hold state for this instance:
-			'url'			=> $streamUrl,	# Url to grab	
-			'song'		  	=> $song,		# song object
-			'status'   		=> IDLE,  		# streaming in progress
-			'offset'     	=> 0, 	 		# number of bytes received
-			'errors'	  	=> 0,			# max number of consecutives errors before giving up	
-			'session'	 	 => Slim::Networking::Async::HTTP->new,
-		};
-		
+	${*$sock}{'vars'} = {       # variables which hold state for this instance:
+		'url'     => $streamUrl, # Url to grab
+		'song'    => $song,      # song object
+		'status'  => IDLE,       # streaming in progress
+		'offset'  => 0,          # number of bytes received
+		'errors'  => 0,          # max number of consecutives errors before giving up
+		'session' => Slim::Networking::Async::HTTP->new,
+	};
+
 	return $sock;
 }
 
@@ -62,16 +61,16 @@ sub sysread {
 	# return in $_[1]
 	my $maxBytes = $_[2];
 	my $v = ${*$self}{'vars'};
-			
+
 	# need to start streaming
 	if ( $v->{'status'} == IDLE ) {
-		my $request = HTTP::Request->new( GET => $v->{'url'} ); 
+		my $request = HTTP::Request->new( GET => $v->{'url'} );
 		$request->header( 'Range', "bytes=$v->{'offset'}-" );
-		$v->{'status'} = CONNECTING;		
+		$v->{'status'} = CONNECTING;
 		$v->{'lastSeen'} = undef;
-			
+
 		main::DEBUGLOG && $log->is_debug && $log->debug("streaming from $v->{'offset'} for $v->{'url'}");
-			
+
 		$v->{'session'}->send_request( {
 			request     => $request,
 			onHeaders => sub {
@@ -82,8 +81,8 @@ sub sysread {
 				$v->{'song'}->bitrate($v->{'length'} * 8 / getBlockData(undef, $v->{'song'})->{length}) if $v->{'length'};
 				Slim::Control::Request::notifyFromArray( $v->{'song'}->master, [ 'newmetadata' ] );
 				main::INFOLOG && $log->is_info && $log->info("length ", $v->{'length'} || 0, " setting bitrate ", int ($v->{'song'}->bitrate), " for $v->{'url'}");
-			},	
-			onError  => sub { 
+			},
+			onError  => sub {
 				$v->{'session'}->disconnect;
 				$v->{'status'} = IDLE;
 				$v->{'errors'}++;
@@ -91,12 +90,12 @@ sub sysread {
 			},
 		} );
 	}
-	
-	# the child socket should be non-blocking so here we can safely call 
+
+	# the child socket should be non-blocking so here we can safely call
 	# read_entity_body which calls sysread if buffer is empty. This is normally
-	# a LMS callback invoked when select() has something to read on that socket. 
+	# a LMS callback invoked when select() has something to read on that socket.
 	my $bytes = $v->{'session'}->socket->read_entity_body($_[1], $maxBytes) if $v->{'status'} == CONNECTED;
-	
+
 	if ( $bytes ) {
 		$v->{'offset'} += $bytes;
 		$v->{'lastSeen'} = time();
@@ -283,7 +282,10 @@ sub getMetadataFor {
 
 		if ($url) {
 			my $bitrate = int($song->bitrate ? ($song->bitrate / 1024) : 850) . 'k VBR FLAC';
-			$bitrate .=  sprintf(" (%u/%u - %u:%02u)", $index + 1, scalar(keys %{$cached->{song}}), $cached->{length}/60, int($cached->{length} % 60));
+
+			if (main::INFOLOG && $log->is_info) {
+				$bitrate .=  sprintf(" (%u/%u - %u:%02u)", $index + 1, scalar(keys %{$cached->{song}}), $cached->{length}/60, int($cached->{length} % 60));
+			}
 
 			$meta = {
 				artist => $songdata->{artist},
