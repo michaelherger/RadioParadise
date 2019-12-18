@@ -1,62 +1,129 @@
 package Plugins::RadioParadise::ProtocolHandler;
 
 use strict;
-# XXX - https
-use base qw(Slim::Player::Protocols::HTTP);
+use base qw(IO::Handle);
 
 use JSON::XS::VersionOneAndTwo;
 use Tie::Cache::LRU;
 use POSIX qw(ceil);
-
-use Slim::Networking::SimpleAsyncHTTP;
+use List::Util qw(min max);
+use AnyEvent::DNS;
 
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 use Slim::Utils::Timers;
+use Slim::Utils::Errno;
 
 use Plugins::RadioParadise::Stations;
 
 use constant BASE_URL => 'https://api.radioparadise.com/api/get_block?bitrate=4&chan=%s&info=true%s';
+use constant MAX_ERRORS	=> 5;
 
-# skip very short segments, like eg. some announcements, they seem to cause timing or buffering issues
-use constant MIN_EVENT_LENGTH => 15;
+use constant IDLE 		=> 1;
+use constant CONNECTING => 2;
+use constant CONNECTED 	=> 3;
 
 my $prefs = preferences('plugin.radioparadise');
-tie my %blockData, 'Tie::Cache::LRU', 16;
-
 my $log = logger('plugin.radioparadise');
 
-# To support remote streaming (synced players, slimp3/SB1), we need to subclass Protocols::HTTP
+tie my %blockData, 'Tie::Cache::LRU', 16;
+
 sub new {
 	my $class  = shift;
 	my $args   = shift;
+	my $song = $args->{'song'};
 
-	my $client = $args->{client};
+	my $streamUrl = $song->streamUrl || return;
+	my $sock = $class->SUPER::new;
 
-	my $song      = $args->{'song'};
-	my $streamUrl = $song->streamUrl() || return;
-
-	my $sock = $class->SUPER::new( {
-		url     => $streamUrl,
-		song    => $args->{'song'},
-		client  => $client,
-		bitrate => 850_000,
-	} ) || return;
-
-	${*$sock}{contentType} = 'audio/flac';
-
+	${*$sock}{'vars'}   = { 	       		# variables which hold state for this instance:
+			'url'			=> $streamUrl,	# Url to grab	
+			'song'		  	=> $song,		# song object
+			'status'   		=> IDLE,  		# streaming in progress
+			'offset'     	=> 0, 	 		# number of bytes received
+			'errors'	  	=> 0,			# max number of consecutives errors before giving up	
+			'session'	 	 => Slim::Networking::Async::HTTP->new,
+		};
+		
 	return $sock;
 }
 
-sub getFormatForURL { 'flac' }
-sub canSeek { 0 }
-sub canDirectStreamSong {
-	my ( $class, $client, $song ) = @_;
-
-	# We need to check with the base class (HTTP) to see if we
-	# are synced or if the user has set mp3StreamingMethod
-	return $class->SUPER::canDirectStream($client, $song->streamUrl(), $class->getFormatForURL());
+sub close {
+	my $self = shift;
+	my $v = ${*$self}{'vars'};
+	$v->{'session'}->disconnect;
+	$v->{'status'} = IDLE;
+	$v->{'offset'} = 0;
+	$self->SUPER::close();
 }
+
+sub sysread {
+	my $self  = $_[0];
+	# return in $_[1]
+	my $maxBytes = $_[2];
+	my $v = ${*$self}{'vars'};
+			
+	# need to start streaming
+	if ( $v->{'status'} == IDLE ) {
+		my $request = HTTP::Request->new( GET => $v->{'url'} ); 
+		$request->header( 'Range', "bytes=$v->{'offset'}-" );
+		$v->{'status'} = CONNECTING;		
+		$v->{'lastSeen'} = undef;
+			
+		main::DEBUGLOG && $log->is_debug && $log->debug("streaming from $v->{'offset'} for $v->{'url'}");
+			
+		$v->{'session'}->send_request( {
+			request     => $request,
+			onHeaders => sub {
+				$v->{'length'} = shift->response->headers->header('Content-Length');
+				$v->{'length'} += $v->{'offset'} if $v->{'length'};
+				$v->{'status'} = CONNECTED;
+				$v->{'errors'} = 0;
+				$v->{'song'}->bitrate($v->{'length'} * 8 / getBlockData(undef, $v->{'song'})->{length}) if $v->{'length'};
+				Slim::Control::Request::notifyFromArray( $v->{'song'}->master, [ 'newmetadata' ] );
+				main::INFOLOG && $log->is_info && $log->info("length ", $v->{'length'} || 0, " setting bitrate ", int ($v->{'song'}->bitrate), " for $v->{'url'}");
+			},	
+			onError  => sub { 
+				$v->{'session'}->disconnect;
+				$v->{'status'} = IDLE;
+				$v->{'errors'}++;
+				$log->error("cannot open session for $v->{'url'} $_[1] ");
+			},
+		} );
+	}
+	
+	# the child socket should be non-blocking so here we can safely call 
+	# read_entity_body which calls sysread if buffer is empty. This is normally
+	# a LMS callback invoked when select() has something to read on that socket. 
+	my $bytes = $v->{'session'}->socket->read_entity_body($_[1], $maxBytes) if $v->{'status'} == CONNECTED;
+	
+	if ( $bytes ) {
+		$v->{'offset'} += $bytes;
+		$v->{'lastSeen'} = time();
+		return $bytes;
+	} elsif ( !defined $bytes && $v->{'errors'} < MAX_ERRORS && ($v->{'status'} != CONNECTED || $! == EINTR || $! == EWOULDBLOCK) && (!defined $v->{'lastSeen'} || time() - $v->{'lastSeen'} < 5) ){
+		$! = EINTR;
+		main::DEBUGLOG && $log->is_debug && $log->debug("need to wait for $v->{'url'}");
+		return undef;
+	} elsif ( !$v->{'length'} || $v->{'offset'} == $v->{'length'} || $v->{'errors'} >= MAX_ERRORS ) {
+		$v->{'session'}->disconnect;
+		main::INFOLOG && $log->is_info && $log->info("end of $v->{'url'} s:", time() - $v->{'lastSeen'}, " e:$v->{'errors'} c:$!");
+		return 0;
+	} else {
+		$log->warn("unexpected connection close at $v->{'offset'}/$v->{'length'} (since ", time() - $v->{'lastSeen'}, ") for $v->{'url'} $_! ");
+		$v->{'session'}->disconnect;
+		$v->{'status'} = IDLE;
+		$v->{'errors'}++;
+		$! = EINTR;
+		return undef;
+	}
+}
+
+sub canSeek { 0 }
+sub isRemote { 1 }
+sub canDirectStream { 0 }
+sub isRepeatingStream { 1 }
+sub contentType { 'audio/flac' };
 
 sub canDoAction {
 	my ( $class, $client, $url, $action ) = @_;
@@ -72,9 +139,6 @@ sub canDoAction {
 
 	return 1;
 }
-
-
-sub isRepeatingStream { 1 }
 
 # Avoid scanning
 sub scanUrl {
@@ -170,37 +234,6 @@ sub _gotNewTrack {
 	$http->params('cb')->();
 }
 
-# we ignore most of this... only return a fake bitrate, and the content type. Length would create a progress bar
-sub parseDirectHeaders {
-	my $class   = shift;
-	my $client  = shift || return;
-	my $url     = shift;
-	my @headers = @_;
-
-	my $bitrate = 850_000;
-	$client = $client->master;
-
-	my ($length, $ct);
-
-	foreach my $header (@headers) {
-		if ( $header =~ /^Content-Length:\s*(.*)/i ) {
-			$length = $1;
-		}
-		elsif ( $header =~ /^Content-Type:\s*(\S*)/i ) {
-			$ct = $1;
-		}
-	}
-
-	my $song = $client->streamingSong();
-	$ct =~ s/(?:m4a|mp4)/aac/i;
-	$ct = Slim::Music::Info::mimeToType($ct);
-
-	$bitrate = $length * 8 / $class->getBlockData($song)->{length};
-
-	#       title, bitrate, metaint, redir, type, length, body
-	return (undef, $bitrate, 0, undef, $ct, $length, undef);
-}
-
 sub getMetadataFor {
 	my ( $class, $client, $url, $forceCurrent ) = @_;
 
@@ -250,10 +283,7 @@ sub getMetadataFor {
 
 		if ($url) {
 			my $bitrate = int($song->bitrate ? ($song->bitrate / 1024) : 850) . 'k VBR FLAC';
-
-			if (main::INFOLOG && $log->is_info) {
-				$bitrate .=  sprintf(" (%u/%u - %u:%02u)", $index + 1, scalar(keys %{$cached->{song}}), $cached->{length}/60, int($cached->{length} % 60));
-			}
+			$bitrate .=  sprintf(" (%u/%u - %u:%02u)", $index + 1, scalar(keys %{$cached->{song}}), $cached->{length}/60, int($cached->{length} % 60));
 
 			$meta = {
 				artist => $songdata->{artist},
