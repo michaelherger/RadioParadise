@@ -287,10 +287,7 @@ sub getMetadataFor {
 
 		if ($url) {
 			my $bitrate = int($song->bitrate ? ($song->bitrate / 1024) : 850) . 'k VBR FLAC';
-
-			#if (main::INFOLOG && $log->is_info) {
-				$bitrate .=  sprintf(" (%u/%u - %u:%02u)", $index + 1, scalar(keys %{$cached->{song}}), $cached->{length}/60, int($cached->{length} % 60));
-			#}
+			$bitrate .=  sprintf(" (%u/%u - %u:%02u)", $index + 1, scalar(keys %{$cached->{song}}), $cached->{length}/60, int($cached->{length} % 60));
 
 			$meta = {
 				artist => $songdata->{artist},
