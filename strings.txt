@@ -51,3 +51,11 @@ PLUGIN_RADIO_PARADISE_HD_DISABLED
 PLUGIN_RADIO_PARADISE_MISSING_SSL
 	DE	Sie benötigen das Perl Modul IO::Socket::SSL! Ohne dieses Modul ist die Nutzung von Radio Paradise verlusfrei NICHT möglich. Bitte benutze den Paket-Manager deines Betriebssystems um es zu installieren.
 	EN	Radio Paradsie lossless streaming requires the Perl module IO::Socket::SSL. Please use your operating system's package manager to install it.
+
+PLUGIN_RADIO_PARADISE_SONG_ON_RP
+	DE	Titel-Information auf Radio Paradise
+	EN	Title information on Radio Paradise
+
+PLUGIN_RADIO_PARADISE_SONG_ID
+	DE	Radio Paradise Song-ID: %s
+	EN	Radio Paradise Song ID: %s

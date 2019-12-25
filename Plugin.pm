@@ -27,6 +27,7 @@ use constant DEFAULT_ARTWORK => 'http://www.radioparadise.com/graphics/metadata_
 use constant HD_URL          => 'http://www.radioparadise.com/ajax_image.php?width=1280';
 use constant HD_INTERVAL     => 15;
 use constant HD_PATH         => 'slideshow/720/';
+use constant INFO_URL        => 'https://radioparadise.com/player/info/%s';
 
 # most lossless features require SSL
 my $canLossless = Slim::Networking::Async::HTTP->hasSSL();
@@ -270,6 +271,24 @@ sub nowPlayingInfoMenu {
 					});
 				},
 				nextWindow => 'parent'
+			}
+		}
+
+		my $handler = Slim::Player::ProtocolHandlers->handlerForURL($url);
+
+		if ( $handler && $handler eq 'Plugins::RadioParadise::ProtocolHandler' ) {
+			my $meta = $handler->getMetadataFor( $client, $url );
+			
+			if ( $meta->{song_id} ) {
+				push @$items, {
+					name => $client->string('PLUGIN_RADIO_PARADISE_SONG_ON_RP'),
+					weblink => sprintf(INFO_URL, $meta->{song_id})
+				} unless $client && $client->controllerUA;
+				
+				push @$items, {
+					name => $client->string('PLUGIN_RADIO_PARADISE_SONG_ID', $meta->{song_id}),
+					type => 'text'
+				};
 			}
 		}
 	}

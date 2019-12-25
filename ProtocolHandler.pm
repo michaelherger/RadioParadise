@@ -297,6 +297,7 @@ sub getMetadataFor {
 				cover  => $song->pluginData('httpCover') || ($songdata->{cover} ? 'https:' . $cached->{image_base} . $songdata->{cover} : $icon),
 				bitrate=> $bitrate,
 				slideshow => [ split(/,/, ($songdata->{slideshow} || '')) ],
+				song_id=> $songdata->{song_id},
 				buttons   => {
 					rew => 0,
 				},
