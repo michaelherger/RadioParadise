@@ -141,7 +141,7 @@ sub handleFeed {
 	my $track = $song->track if $song;
 	my $url = $track->url if $track;
 
-	my $items = nowPlayingInfoMenu($client, $url, $track) || [];
+	my $items = [];
 
 	if ($canLossless) {
 		my $canAAC = grep(/aac/i, Slim::Player::CapabilitiesHelper::supportedFormats($client)) ? 1 : 0;
