@@ -59,3 +59,45 @@ PLUGIN_RADIO_PARADISE_SONG_ON_RP
 PLUGIN_RADIO_PARADISE_SONG_ID
 	DE	Radio Paradise Song-ID: %s
 	EN	Radio Paradise Song ID: %s
+
+PLUGIN_RADIO_PARADISE_RATE
+	DE	Titel auf Radio Paradise bewerten
+	EN	Rate this song on Radio Paradise
+
+PLUGIN_RADIO_PARADISE_RATED
+	DE	Titel wurde bewertet
+	EN	Rating submitted
+
+PLUGIN_RADIO_PARADISE_RATE_FAILED
+	DE	Titelbewertung fehlgeschlagen
+	EN	Failed to submit rating
+
+PLUGIN_RADIO_PARADISE_RATING_10
+	EN	10 - Godlike
+
+PLUGIN_RADIO_PARADISE_RATING_9
+	EN	9 - Outstanding
+
+PLUGIN_RADIO_PARADISE_RATING_8
+	EN	8 - Most Excellent
+
+PLUGIN_RADIO_PARADISE_RATING_7
+	EN	7 - Quite Likeable
+
+PLUGIN_RADIO_PARADISE_RATING_6
+	EN	6 - Pretty Good
+
+PLUGIN_RADIO_PARADISE_RATING_5
+	EN	5 - Decent
+
+PLUGIN_RADIO_PARADISE_RATING_4
+	EN	4 - Acceptable
+
+PLUGIN_RADIO_PARADISE_RATING_3
+	EN	3 - Ho Hum
+
+PLUGIN_RADIO_PARADISE_RATING_2
+	EN	2 - Marginal
+
+PLUGIN_RADIO_PARADISE_RATING_1
+	EN	1 - Sucko-barfo

@@ -110,6 +110,9 @@ sub initPlugin {
 
 		require Plugins::RadioParadise::Stations;
 		Plugins::RadioParadise::Stations->init();
+
+		require Plugins::RadioParadise::Favorites;
+		Plugins::RadioParadise::Favorites->init();
 	}
 	else {
 		$log->warn(string('PLUGIN_RADIO_PARADISE_MISSING_SSL'));
@@ -185,11 +188,11 @@ sub handleFeed {
 				};
 			}
 
-			unshift @$items, {
+			unshift @$items, $#{$stationMenu} ? {
 				type => 'outline',
 				name => getString($client, $_->{name}),
 				items => $stationMenu
-			};
+			} : $stationMenu->[0];
 		}
 	}
 	else {
@@ -278,22 +281,59 @@ sub nowPlayingInfoMenu {
 
 		if ( $handler && $handler eq 'Plugins::RadioParadise::ProtocolHandler' ) {
 			my $meta = $handler->getMetadataFor( $client, $url );
-			
+
 			if ( $meta->{song_id} ) {
 				push @$items, {
 					name => $client->string('PLUGIN_RADIO_PARADISE_SONG_ON_RP'),
 					weblink => sprintf(INFO_URL, $meta->{song_id})
 				} unless $client && $client->controllerUA;
-				
+
 				push @$items, {
 					name => $client->string('PLUGIN_RADIO_PARADISE_SONG_ID', $meta->{song_id}),
 					type => 'text'
+				};
+
+				my @ratings;
+				for (my $x = 10; $x > 0; $x--) {
+					push @ratings, {
+						name => $client->string('PLUGIN_RADIO_PARADISE_RATING_' . $x),
+						url => \&_rate,
+						passthrough => [{
+							id => $meta->{song_id},
+							rating => $x
+						}],
+						nextWindow => 'parent'
+					};
+				}
+
+				push @$items, {
+					name => $client->string('PLUGIN_RADIO_PARADISE_RATE'),
+					type => 'outline',
+					items => \@ratings,
 				};
 			}
 		}
 	}
 
 	return $items;
+}
+
+sub _rate {
+	my ($client, $cb, $params, $args) = @_;
+
+	if (!$args->{id} || !$args->{rating}) {
+		return $cb->([{
+			name => $client->string('PLUGIN_RADIO_PARADISE_RATE_FAILED'),
+			showBriefly => 1,
+		}]);
+	}
+
+	Plugins::RadioParadise::Favorites->rate($args->{id}, $args->{rating}, sub {
+		$cb->([{
+			name => $client->string($_[0] ? 'PLUGIN_RADIO_PARADISE_RATED' : 'PLUGIN_RADIO_PARADISE_RATE_FAILED'),
+			showBriefly => 1,
+		}]);
+	});
 }
 
 sub _getHDImage {
