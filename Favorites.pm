@@ -4,6 +4,7 @@ use strict;
 
 use JSON::XS::VersionOneAndTwo;
 use List::Util qw(min);
+use URI::Escape qw(uri_escape_utf8);
 
 use Slim::Networking::SimpleAsyncHTTP;
 use Slim::Utils::Log;
@@ -19,28 +20,40 @@ sub init {
 }
 
 sub signIn {
-	my ($class) = @_;
+	my ($class, $username, $password, $cb) = @_;
 
-	# TODO - only run if credentials are given
+	if (!$username || !$password) {
+		$cb->();
+		return;
+	}
 
 	Slim::Networking::SimpleAsyncHTTP->new(sub {
-		warn Data::Dump::dump(@_, 'success');
-		warn isSignedIn();
+		if (!isSignedIn()) {
+			$log->warn("Failed to sign in? " . (main::INFOLOG && Data::Dump::dump(@_)));
+		}
+		elsif (main::DEBUGLOG && $log->is_debug) {
+			$log->debug(Data::Dump::dump(@_));
+		}
+
+		$cb->(isSignedIn());
 	}, sub {
-		warn Data::Dump::dump(@_, 'failure');
-		warn isSignedIn();
-	})->get(sprintf(AUTH_URL, '', ''));
+		$log->warn("Failed to sign in? " . (main::INFOLOG && Data::Dump::dump(@_)));
+		$cb->(isSignedIn());
+	})->get(sprintf(AUTH_URL, uri_escape_utf8($username), uri_escape_utf8($password)));
+}
+
+sub signOut {
+	Slim::Networking::Async::HTTP->cookie_jar->clear('.radioparadise.com');
+	Slim::Networking::Async::HTTP->cookie_jar->clear('api.radioparadise.com');
 }
 
 sub refresh {
 	my ($class) = @_;
 
-	# call auth endpoint to refresh the token if possible
-	Slim::Networking::SimpleAsyncHTTP->new(sub {
-		$class->signIn() if !$class->isSignedIn();
-	}, sub {
-		$class->signIn() if !$class->isSignedIn();
-	})->get(AUTH_URL);
+	if ($class->isSignedIn()) {
+		# call auth endpoint to refresh the token if possible
+		Slim::Networking::SimpleAsyncHTTP->new(sub {}, sub {})->get(AUTH_URL);
+	}
 }
 
 sub rate {
@@ -81,14 +94,16 @@ sub isSignedIn {
 	my %required = (
 		c_validated => 1,
 		c_user_id => 1,
-		c_passwd => ,
+		c_passwd => 1,
 	);
 
 	my $expiresTS = time() + 720 * 86400;
 	Slim::Networking::Async::HTTP->cookie_jar->scan(sub {
-		my (undef, $name, undef, undef, undef, undef, undef, undef, $expires) = @_;
-		$expiresTS = min($expiresTS, $expires) if $required{lc($name)};
-		delete $required{lc($name)} if $expires > time();
+		my (undef, $name, undef, undef, $domain, undef, undef, undef, $expires) = @_;
+		if ($domain =~ /\bradioparadise\.com/) {
+			$expiresTS = min($expiresTS, $expires) if $required{lc($name)};
+			delete $required{lc($name)} if $expires > time();
+		}
 	});
 
 	main::INFOLOG && $log->is_info && !keys %required && $log->info(sprintf('Session still valid for %s seconds', $expiresTS - time()));

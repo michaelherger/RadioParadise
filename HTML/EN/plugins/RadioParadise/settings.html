@@ -1,0 +1,18 @@
+[% PROCESS settings/header.html %]
+
+	[% IF rp_username && rp_valid_thru %]
+		[% WRAPPER setting title="PLUGIN_RADIO_PARADISE_SESSION" desc="" %]
+			<div>[% rp_username %] [% "PLUGIN_RADIO_PARADISE_VALID_THRU" | string(rp_valid_thru) %]</div>
+			<div><input name="delete_creds" type="submit" value="[% "DELETE" | string %]" class="stdclick" /></div>
+		[% END %]
+	[% ELSE %]
+		[% WRAPPER setting title="SETUP_USERNAME" desc="PLUGIN_RADIO_PARADISE_AUTH_DESC" %]
+			<input type="text" name="rp_username">
+		[% END %]
+
+		[% WRAPPER setting title="SETUP_PASSWORD" desc="PLUGIN_RADIO_PARADISE_AUTH_DESC" %]
+			<input type="password" name="rp_password">
+		[% END %]
+	[% END %]
+
+[% PROCESS settings/footer.html %]

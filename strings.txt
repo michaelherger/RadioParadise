@@ -60,6 +60,18 @@ PLUGIN_RADIO_PARADISE_SONG_ID
 	DE	Radio Paradise Song-ID: %s
 	EN	Radio Paradise Song ID: %s
 
+PLUGIN_RADIO_PARADISE_SESSION
+	DE	Angemeldet als
+	EN	Signed In As
+
+PLUGIN_RADIO_PARADISE_AUTH_DESC
+	DE	Beachten Sie bitte, dass das Passwort NICHT gespeichert wird.
+	EN	Please note that the credentials are not stored.
+
+PLUGIN_RADIO_PARADISE_VALID_THRU
+	DE	(gültig bis: %s)
+	EN	(valid thru: %s)
+
 PLUGIN_RADIO_PARADISE_RATE
 	DE	Titel auf Radio Paradise bewerten
 	EN	Rate this song on Radio Paradise

@@ -113,6 +113,11 @@ sub initPlugin {
 
 		require Plugins::RadioParadise::Favorites;
 		Plugins::RadioParadise::Favorites->init();
+
+		if (main::WEBUI) {
+			require Plugins::RadioParadise::Settings;
+			Plugins::RadioParadise::Settings->new();
+		}
 	}
 	else {
 		$log->warn(string('PLUGIN_RADIO_PARADISE_MISSING_SSL'));
