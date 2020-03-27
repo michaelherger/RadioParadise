@@ -111,4 +111,16 @@ sub isSignedIn {
 	return keys %required ? 0 : $expiresTS;
 }
 
+sub getUserId {
+	my $userId = '';
+	Slim::Networking::Async::HTTP->cookie_jar->scan(sub {
+		my (undef, $name, $value, undef, $domain) = @_;
+		if ($domain =~ /\bradioparadise\.com/ && lc($name) eq 'c_user_id') {
+			$userId = $value;
+		}
+	});
+
+	return $userId;
+}
+
 1;

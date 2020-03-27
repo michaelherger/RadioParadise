@@ -113,3 +113,7 @@ PLUGIN_RADIO_PARADISE_RATING_2
 
 PLUGIN_RADIO_PARADISE_RATING_1
 	EN	1 - Sucko-barfo
+
+PLUGIN_RADIO_PARADISE_LASTMIX
+	DE	LastMix - Radio Paradise Favoriten
+	EN	LastMix - Radio Paradise Favorites

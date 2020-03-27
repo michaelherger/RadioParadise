@@ -132,6 +132,23 @@ sub initPlugin {
 	);
 }
 
+sub postinitPlugin { if ($canLossless) {
+	my $class = shift;
+
+	# add support for LastMix - if it's installed
+	if ( Slim::Utils::PluginManager->isEnabled('Plugins::LastMix::Plugin') ) {
+		eval {
+			require Plugins::LastMix::Services;
+		};
+
+		if (!$@) {
+			main::INFOLOG && $log->info("LastMix plugin is available - let's use it!");
+			require Slim::Plugin::DontStopTheMusic::Plugin;
+			require Plugins::RadioParadise::DontStopTheMusic;
+			Slim::Plugin::DontStopTheMusic::Plugin->registerHandler('PLUGIN_RADIO_PARADISE_LASTMIX', \&Plugins::RadioParadise::DontStopTheMusic::please);
+		}
+	}
+} }
 
 sub getDisplayName { 'PLUGIN_RADIO_PARADISE' }
 sub playerMenu {}
