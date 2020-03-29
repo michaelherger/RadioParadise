@@ -88,12 +88,6 @@ sub getChannelMap {
 	} values %$stations };
 }
 
-my $maxChannelId;
-sub maxChannelId {
-	$maxChannelId ||= reverse values %{ getChannelMap() };
-	return $maxChannelId;
-}
-
 sub _gotChannelList {
 	my $http = shift;
 
@@ -173,7 +167,6 @@ sub _gotStationURLList {
 	}
 
 	Plugins::RadioParadise::MetadataProvider->init();
-	$maxChannelId = undef;
 }
 
 sub _createStation {
