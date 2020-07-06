@@ -18,9 +18,10 @@ use Plugins::RadioParadise::Stations;
 use constant BASE_URL => 'https://api.radioparadise.com/api/get_block?bitrate=4&chan=%s&info=true%s';
 use constant MAX_ERRORS	=> 5;
 
-use constant IDLE 		=> 1;
-use constant CONNECTING => 2;
-use constant CONNECTED 	=> 3;
+use constant DISCONNECTED => 0;
+use constant IDLE         => 1;
+use constant CONNECTING   => 2;
+use constant CONNECTED    => 3;
 
 my $prefs = preferences('plugin.radioparadise');
 my $log = logger('plugin.radioparadise');
@@ -50,8 +51,8 @@ sub new {
 sub close {
 	my $self = shift;
 	my $v = ${*$self}{'vars'};
-	$v->{'session'}->disconnect;
-	$v->{'status'} = IDLE;
+	$v->{'session'}->disconnect unless $v->{'status'} == DISCONNECTED;
+	$v->{'status'} = DISCONNECTED;
 	$v->{'offset'} = 0;
 	$self->SUPER::close();
 }
@@ -61,6 +62,8 @@ sub sysread {
 	# return in $_[1]
 	my $maxBytes = $_[2];
 	my $v = ${*$self}{'vars'};
+	
+	return 0 if $v->{'status'} == DISCONNECTED;
 
 	# need to start streaming
 	if ( $v->{'status'} == IDLE ) {
@@ -96,16 +99,17 @@ sub sysread {
 	# a LMS callback invoked when select() has something to read on that socket.
 	my $bytes = $v->{'session'}->socket->read_entity_body($_[1], $maxBytes) if $v->{'status'} == CONNECTED;
 
-	if ( $bytes ) {
+	if ( $bytes && $bytes != -1 ) {
 		$v->{'offset'} += $bytes;
 		$v->{'lastSeen'} = time();
 		return $bytes;
-	} elsif ( !defined $bytes && $v->{'errors'} < MAX_ERRORS && ($v->{'status'} != CONNECTED || $! == EINTR || $! == EWOULDBLOCK) && (!defined $v->{'lastSeen'} || time() - $v->{'lastSeen'} < 5) ){
+	} elsif ( ($bytes == -1 || !defined $bytes) && $v->{'errors'} < MAX_ERRORS && ($v->{'status'} != CONNECTED || $! == EINTR || $! == EWOULDBLOCK) && (!defined $v->{'lastSeen'} || time() - $v->{'lastSeen'} < 5) ){
 		$! = EINTR;
 		main::DEBUGLOG && $log->is_debug && $log->debug("need to wait for $v->{'url'}");
 		return undef;
 	} elsif ( !$v->{'length'} || $v->{'offset'} == $v->{'length'} || $v->{'errors'} >= MAX_ERRORS ) {
 		$v->{'session'}->disconnect;
+		$v->{'status'} = DISCONNECTED;
 		main::INFOLOG && $log->is_info && $log->info("end of $v->{'url'} s:", time() - $v->{'lastSeen'}, " e:$v->{'errors'} c:$!");
 		return 0;
 	} else {
