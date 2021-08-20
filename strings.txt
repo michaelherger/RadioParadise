@@ -31,89 +31,114 @@ PLUGIN_RADIO_PARADISE_MP3_192
 PLUGIN_RADIO_PARADISE_DESC
 	DE	Radio Paradise verlustfrei! Und ein paar andere Funktionen.
 	EN	Lossless Radio Paradise - and then some.
+	FR	Accédez à Radio Paradise (streaming en compression sans perte) et bénéficiez de quelques bonus !
 
 PLUGIN_RADIO_PARADISE_ENABLE_HD
 	DE	Radio Paradise HD aktivieren
 	EN	Enable Radio Paradise HD images
+	FR	Activer Radio Paradise HD
 
 PLUGIN_RADIO_PARADISE_DISABLE_HD
 	DE	Radio Paradise HD deaktivieren
 	EN	Disable Radio Paradise HD images
+	FR	Désactiver Radio Paradise HD
 
 PLUGIN_RADIO_PARADISE_HD_ENABLED
 	DE	Radio Paradise HD aktiviert
 	EN	Radio Paradise HD enabled
+	FR	Radio Paradise HD activée
 
 PLUGIN_RADIO_PARADISE_HD_DISABLED
 	DE	Radio Paradise HD deaktiviert
 	EN	Radio Paradise HD disabled
+	FR	Radio Paradise HD désactivée
 
 PLUGIN_RADIO_PARADISE_MISSING_SSL
 	DE	Sie benötigen das Perl Modul IO::Socket::SSL! Ohne dieses Modul ist die Nutzung von Radio Paradise verlusfrei NICHT möglich. Bitte benutze den Paket-Manager deines Betriebssystems um es zu installieren.
-	EN	Radio Paradsie lossless streaming requires the Perl module IO::Socket::SSL. Please use your operating system's package manager to install it.
+	EN	Radio Paradise lossless streaming requires the Perl module IO::Socket::SSL. Please use your operating system's package manager to install it.
+	FR	Le module Perl IO::Socket::SSL est indispensable pour Radio Paradise ! Utilisez le gestionnaire de paquets de votre système d'exploitation pour installer ce module.
 
 PLUGIN_RADIO_PARADISE_SONG_ON_RP
 	DE	Titel-Information auf Radio Paradise
 	EN	Title information on Radio Paradise
+	FR	Informations sur le titre sur Radio Paradise
 
 PLUGIN_RADIO_PARADISE_SONG_ID
 	DE	Radio Paradise Song-ID: %s
 	EN	Radio Paradise Song ID: %s
+	EN	Radio Paradise Song ID : %s
 
 PLUGIN_RADIO_PARADISE_SESSION
 	DE	Angemeldet als
 	EN	Signed In As
+	FR	Connecté en tant que
 
 PLUGIN_RADIO_PARADISE_AUTH_DESC
 	DE	Beachten Sie bitte, dass das Passwort NICHT gespeichert wird.
 	EN	Please note that the credentials are not stored.
+	FR	Veuillez noter que le mot de passe n'est pas enregistré.
 
 PLUGIN_RADIO_PARADISE_VALID_THRU
 	DE	(gültig bis: %s)
 	EN	(valid thru: %s)
+	FR	(valable jusqu'à : %s)
 
 PLUGIN_RADIO_PARADISE_RATE
 	DE	Titel auf Radio Paradise bewerten
 	EN	Rate this song on Radio Paradise
+	FR	Noter le morceau sur Radio Paradise
 
 PLUGIN_RADIO_PARADISE_RATED
 	DE	Titel wurde bewertet
 	EN	Rating submitted
+	FR	Note transmise
 
 PLUGIN_RADIO_PARADISE_RATE_FAILED
 	DE	Titelbewertung fehlgeschlagen
 	EN	Failed to submit rating
+	FR	Échec de l'envoi de la note
 
 PLUGIN_RADIO_PARADISE_RATING_10
 	EN	10 - Godlike
+	FR	10 - Divin
 
 PLUGIN_RADIO_PARADISE_RATING_9
 	EN	9 - Outstanding
+	FR	9 - Exceptionnel
 
 PLUGIN_RADIO_PARADISE_RATING_8
 	EN	8 - Most Excellent
+	FR	8 - Excellent
 
 PLUGIN_RADIO_PARADISE_RATING_7
 	EN	7 - Quite Likeable
+	FR	7 - Bien sympathique
 
 PLUGIN_RADIO_PARADISE_RATING_6
 	EN	6 - Pretty Good
+	FR	6 - Plutôt bon
 
 PLUGIN_RADIO_PARADISE_RATING_5
 	EN	5 - Decent
+	FR	5 - Décent
 
 PLUGIN_RADIO_PARADISE_RATING_4
 	EN	4 - Acceptable
+	FR	4 - Juste acceptable
 
 PLUGIN_RADIO_PARADISE_RATING_3
 	EN	3 - Ho Hum
+	FR	3 - Bof
 
 PLUGIN_RADIO_PARADISE_RATING_2
 	EN	2 - Marginal
+	FR	2 - A éviter
 
 PLUGIN_RADIO_PARADISE_RATING_1
 	EN	1 - Sucko-barfo
+	FR	1 - A fuir
 
 PLUGIN_RADIO_PARADISE_LASTMIX
 	DE	LastMix - Radio Paradise Favoriten
 	EN	LastMix - Radio Paradise Favorites
+	FR	LastMix - Favoris Radio Paradise
