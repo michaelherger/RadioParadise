@@ -21,12 +21,15 @@ PLUGIN_RADIO_PARADISE_LOSSLESS
 
 PLUGIN_RADIO_PARADISE_AAC320
 	EN	AAC 320kbps
+	FR	AAC 320 kbit/s
 
 PLUGIN_RADIO_PARADISE_AAC128
 	EN	AAC 128kbps
+	FR	AAC 128 kbit/s
 
 PLUGIN_RADIO_PARADISE_MP3_192
 	EN	MP3 192kbps
+	FR	MP3 192 kbit/s
 
 PLUGIN_RADIO_PARADISE_DESC
 	DE	Radio Paradise verlustfrei! Und ein paar andere Funktionen.
@@ -66,7 +69,7 @@ PLUGIN_RADIO_PARADISE_SONG_ON_RP
 PLUGIN_RADIO_PARADISE_SONG_ID
 	DE	Radio Paradise Song-ID: %s
 	EN	Radio Paradise Song ID: %s
-	EN	Radio Paradise Song ID : %s
+	FR	Radio Paradise Song ID : %s
 
 PLUGIN_RADIO_PARADISE_SESSION
 	DE	Angemeldet als
