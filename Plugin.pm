@@ -27,7 +27,7 @@ use constant DEFAULT_ARTWORK => 'http://www.radioparadise.com/graphics/metadata_
 use constant HD_URL          => 'http://www.radioparadise.com/ajax_image.php?width=1280';
 use constant HD_INTERVAL     => 15;
 use constant HD_PATH         => 'slideshow/720/';
-use constant INFO_URL        => 'https://radioparadise.com/player/info/%s';
+use constant INFO_URL        => 'https://radioparadise.com/music/song/%s';
 
 # most lossless features require SSL
 my $canLossless = Slim::Networking::Async::HTTP->hasSSL();
@@ -308,7 +308,7 @@ sub nowPlayingInfoMenu {
 				push @$items, {
 					name => $client->string('PLUGIN_RADIO_PARADISE_SONG_ON_RP'),
 					weblink => sprintf(INFO_URL, $meta->{song_id})
-				} unless $client && $client->controllerUA;
+				} if canWeblink($client);
 
 				push @$items, {
 					name => $client->string('PLUGIN_RADIO_PARADISE_SONG_ID', $meta->{song_id}),
@@ -338,6 +338,15 @@ sub nowPlayingInfoMenu {
 	}
 
 	return $items;
+}
+
+# Keep in sync with Qobuz plugin
+my $WEBLINK_SUPPORTED_UA_RE = qr/\b(?:iPeng|SqueezePad|OrangeSqueeze|Squeeze-Control)\b/i;
+my $WEBBROWSER_UA_RE = qr/\b(?:FireFox|Chrome|Safari)\b/i;
+
+sub canWeblink {
+	my ($client) = @_;
+	return $client && (!$client->controllerUA || ($client->controllerUA =~ $WEBLINK_SUPPORTED_UA_RE || $client->controllerUA =~ $WEBBROWSER_UA_RE));
 }
 
 sub _rate {
