@@ -341,7 +341,7 @@ sub nowPlayingInfoMenu {
 }
 
 # Keep in sync with Qobuz plugin
-my $WEBLINK_SUPPORTED_UA_RE = qr/\b(?:iPeng|SqueezePad|OrangeSqueeze|OpenSqueeze|Squeeze-Control)\b/i;
+my $WEBLINK_SUPPORTED_UA_RE = qr/\b(?:iPeng|SqueezePad|OrangeSqueeze|OpenSqueeze|Squeezer|Squeeze-Control)\b/i;
 my $WEBBROWSER_UA_RE = qr/\b(?:FireFox|Chrome|Safari)\b/i;
 
 sub canWeblink {
