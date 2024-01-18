@@ -62,7 +62,7 @@ sub sysread {
 	# return in $_[1]
 	my $maxBytes = $_[2];
 	my $v = ${*$self}{'vars'};
-	
+
 	return 0 if $v->{'status'} == DISCONNECTED;
 
 	# need to start streaming
@@ -302,6 +302,7 @@ sub getMetadataFor {
 				bitrate=> $bitrate,
 				slideshow => [ split(/,/, ($songdata->{slideshow} || '')) ],
 				song_id=> $songdata->{song_id},
+				extid  => $songdata->{song_id},
 				buttons   => {
 					rew => 0,
 				},
