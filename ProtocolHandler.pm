@@ -302,7 +302,7 @@ sub getMetadataFor {
 				bitrate=> $bitrate,
 				slideshow => [ split(/,/, ($songdata->{slideshow} || '')) ],
 				song_id=> $songdata->{song_id},
-				extid  => $songdata->{song_id},
+				extid  => 'radioparadise:' . $songdata->{song_id},
 				buttons   => {
 					rew => 0,
 				},
