@@ -15,4 +15,13 @@
 		[% END %]
 	[% END %]
 
+	[% WRAPPER setting title="PLUGIN_RADIO_PARADISE_MENULOCATION" desc="PLUGIN_RADIO_PARADISE_MENULOCATION_DESC" %]
+		<div>
+			<select class="stdedit" name="pref_showInRadioMenu" id="showInRadioMenu">
+				<option value="0">[% "PLUGIN_MY_APPS_MODULE_NAME" | string %]</option>
+				<option value="1" [% IF prefs.pref_showInRadioMenu; "selected"; END %]>[% "RADIO" | string %]</option>
+			</select>
+		</div>
+	[% END %]
+
 [% PROCESS settings/footer.html %]

@@ -21,7 +21,8 @@ my $log = Slim::Utils::Log->addLogCategory( {
 	description  => 'PLUGIN_RADIO_PARADISE',
 } );
 
-my $prefs = preferences('server');
+my $serverprefs = preferences('server');
+my $prefs = preferences('plugin.radioparadise');
 
 use constant DEFAULT_ARTWORK => 'http://www.radioparadise.com/graphics/metadata_2.jpg';
 use constant HD_URL          => 'http://www.radioparadise.com/ajax_image.php?width=1280';
@@ -97,7 +98,7 @@ sub initPlugin {
 		main::DEBUGLOG && $log->debug("Successfully registered image proxy for Radio Paradise artwork");
 
 		$useLocalImageproxy = 1;
-	} if $prefs->get('useLocalImageproxy');
+	} if $serverprefs->get('useLocalImageproxy');
 
 	if ($canLossless) {
 		Slim::Player::ProtocolHandlers->registerHandler(
@@ -127,7 +128,7 @@ sub initPlugin {
 		feed   => \&handleFeed,
 		tag    => 'radioparadise',
 		menu   => 'radios',
-		is_app => 1,
+		is_app => $prefs->get('showInRadioMenu') ? 0 : 1,
 		weight => 1,
 	);
 }

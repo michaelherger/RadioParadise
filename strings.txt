@@ -175,3 +175,13 @@ PLUGIN_RADIO_PARADISE_LASTMIX
 	EN	LastMix - Radio Paradise Favorites
 	FR	LastMix - Favoris Radio Paradise
 	NL	LastMix - Radio Paradise Favorieten
+
+PLUGIN_RADIO_PARADISE_MENULOCATION
+	DE	Menüwahl
+	EN	Show in menu
+	FR	Afficher dans le menu
+
+PLUGIN_RADIO_PARADISE_MENULOCATION_DESC
+	DE	Wählen Sie, ob das Plugin in "Eigene Anwendungen" oder "Radio" auftauchen soll. Bitte beachten Sie, dass Sie den Server neu starten müssen, um die Änderung zu aktivieren.
+	EN	Select if you want the plugin to appear in "My Apps" or "Radio". Note that you will need to restart the server after changing this setting.
+	FR	Sélectionnez si vous souhaitez que le plugin apparaisse dans le menu "Mes applications" ou "Radio". Notez que vous devrez redémarrer le serveur après avoir modifié ce paramètre.
