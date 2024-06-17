@@ -20,7 +20,7 @@ sub page {
 }
 
 sub prefs {
-	return ($prefs, qw(showInRadioMenu));
+	return ($prefs, qw(showInRadioMenu replayGain));
 }
 
 sub handler {
