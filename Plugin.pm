@@ -42,6 +42,7 @@ if ($canLossless) {
 }
 
 $prefs->init({
+	showInRadioMenu => 0,
 	replayGain => 0
 });
 
