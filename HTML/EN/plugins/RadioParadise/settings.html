@@ -15,8 +15,10 @@
 		[% END %]
 	[% END %]
 
-	[% WRAPPER settingGroup title="PLUGIN_RADIO_PARADISE_REPLAYGAIN" desc="PLUGIN_RADIO_PARADISE_REPLAYGAIN_DESC" %]
-		<input type="text" class="stdedit sliderInput_-10_10_0.1" name="pref_replayGain" id="replayGain" value="[% prefs.pref_replayGain | html %]" size="5">
+	[% WRAPPER setting title="PLUGIN_RADIO_PARADISE_REPLAYGAIN" desc="PLUGIN_RADIO_PARADISE_REPLAYGAIN_DESC" %]
+		<div>
+			<input type="text" class="stdedit sliderInput_-10_10_0.1" name="pref_replayGain" id="replayGain" value="[% prefs.pref_replayGain | html %]" size="5">
+		</div>
 	[% END %]
 
 	[% WRAPPER setting title="PLUGIN_RADIO_PARADISE_MENULOCATION" desc="PLUGIN_RADIO_PARADISE_MENULOCATION_DESC" %]
