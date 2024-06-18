@@ -41,6 +41,11 @@ if ($canLossless) {
 	$canLossless = 0 if $@;
 }
 
+$prefs->init({
+	showInRadioMenu => 0,
+	replayGain => 0
+});
+
 # s13606 is the TuneIn ID for RP - Shoutcast URLs are recognized by the cover URL. Hopefully.
 #my $radioUrlRegex = qr/(?:\.radioparadise\.com|id=s13606|shoutcast\.com.*id=(785339|101265|1595911|674983|308768|1604072|1646896|1695633|856611))/i;
 my $radioUrlRegex = qr/(?:^radioparadise:|\.radioparadise\.com|id=s13606|radio_paradise)/i;

@@ -385,4 +385,17 @@ sub getIcon {
 	return Plugins::RadioParadise::Plugin->_pluginDataFor('icon');
 }
 
+# Optionally override replaygain to use the plugin's gain value
+sub trackGain {
+	my ( $class, $client, $url ) = @_;
+
+	main::DEBUGLOG && $log->is_debug && $log->debug("Url: $url");
+	
+	my $cPrefs = preferences('server')->client($client);  # access player prefs
+ 	my $rgmode = $cPrefs->get('replayGainMode');  # is player replay gain in effect?
+	
+	# if so, return the sum of remoteReplayGain and the plugin's adjustment	
+	return $rgmode ? $cPrefs->get('remoteReplayGain') + $prefs->get('replayGain') : undef;
+}
+
 1;
