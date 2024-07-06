@@ -182,18 +182,22 @@ PLUGIN_RADIO_PARADISE_MENULOCATION
 	DE	Menüwahl
 	EN	Show in menu
 	FR	Afficher dans le menu
+	NL	Toon in menu
 
 PLUGIN_RADIO_PARADISE_MENULOCATION_DESC
 	DE	Wählen Sie, ob das Plugin in "Eigene Anwendungen" oder "Radio" auftauchen soll. Bitte beachten Sie, dass Sie den Server neu starten müssen, um die Änderung zu aktivieren.
 	EN	Select if you want the plugin to appear in "My Apps" or "Radio". Note that you will need to restart the server after changing this setting.
 	FR	Choisissez si le plugin apparaît dans le menu "Mes applications" ou "Radio". Notez que vous devez redémarrer le serveur après avoir modifié ce paramètre.
+	NL	Bepaal of de plugin verschijnt in "Mijn Applicaties" of "Radio". De server moet opnieuw worden gestart bij het veranderen van de keuze.
 
 PLUGIN_RADIO_PARADISE_REPLAYGAIN
 	DE	Lautstärkeregelung
 	EN	Volume adjustment
 	FR	Ajustement du volume
+	NL	Volumeaanpassing
 
 PLUGIN_RADIO_PARADISE_REPLAYGAIN_DESC
 	DE	Zusätzlicher Betrag der Lautstärkeanpassung, der nach der „Anpassung für Internet-Streams“ angewendet werden soll (nur FLAC Interactive-Streams).
 	EN	Additional amount of volume adjustment to be applied after the "Default Adjustment for Remote Streams" (FLAC Interactive streams only).
 	FR	Ajustement complémentaire à celui défini dans "Ajustement du volume pour le streaming Internet" (seulement pour les flux FLAC interactifs).
+	NL	Extra hoeveelheid volumeaanpassing die wordt toegepast na de "Standaard volumeaanpassing voor externe streams" (alleen FLAC interactieve streams).
