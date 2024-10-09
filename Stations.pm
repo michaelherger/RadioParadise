@@ -1,12 +1,14 @@
 package Plugins::RadioParadise::Stations;
 
 use strict;
-use JSON::XS::VersionOneAndTwo;
+
+use Async::Util;
 
 use Slim::Networking::SimpleAsyncHTTP;
 use Slim::Utils::Log;
 use Slim::Utils::Timers;
 
+use Plugins::RadioParadise::API;
 use Plugins::RadioParadise::MetadataProvider;
 
 use constant REFRESH_INTERVAL => 86400;
@@ -19,7 +21,7 @@ my $stations = { map {
 	$_->{tag} => $_;
 } (
 	{
-		tag => 'main',
+		tag => 'main-mix',
 		name => 'PLUGIN_RADIO_PARADISE_MAIN_MIX',
 		flac_interactive => 'radioparadise://4.flac',
 		flac => 'http://stream.radioparadise.com/flac',
@@ -28,7 +30,7 @@ my $stations = { map {
 		mp3 => 'http://stream.radioparadise.com/mp3-192'
 	},
 	{
-		tag => 'mellow',
+		tag => 'mellow-mix',
 		id => 1,
 		name => 'PLUGIN_RADIO_PARADISE_MELLOW_MIX',
 		flac_interactive => 'radioparadise://4-1.flac',
@@ -38,7 +40,7 @@ my $stations = { map {
 		mp3 => 'http://stream.radioparadise.com/mellow-192'
 	},
 	{
-		tag => 'rock',
+		tag => 'rock-mix',
 		id => 2,
 		name => 'PLUGIN_RADIO_PARADISE_ROCK_MIX',
 		flac_interactive => 'radioparadise://4-2.flac',
@@ -48,7 +50,7 @@ my $stations = { map {
 		mp3 => 'http://stream.radioparadise.com/rock-192'
 	},
 	{
-		tag => 'eclectic',
+		tag => 'global-mix',
 		id => 3,
 		name => 'PLUGIN_RADIO_PARADISE_ECLECTIC_MIX',
 		flac_interactive => 'radioparadise://4-3.flac',
@@ -62,14 +64,30 @@ my $stations = { map {
 sub init {
 	Slim::Utils::Timers::killTimers(undef, \&init);
 
-	$log->info("Updating channel list...");
-	Slim::Networking::SimpleAsyncHTTP->new(
-		\&_gotChannelList,
-		sub {
-			my ($http, $error) = @_;
-			$log->error("Failed to look up new channel list: $error" );
+	Async::Util::achain(
+		steps => [
+			sub {
+				my (undef, $acb) = @_;
+				Plugins::RadioParadise::API->auth($acb);
+			},
+			sub {
+				my ($userId, $acb) = @_;
+				Plugins::RadioParadise::API->getRadioStationList($acb);
+			},
+			sub {
+				my ($stationInfo, $acb) = @_;
+				_gotChannelList($stationInfo, $acb);
+			},
+			sub {
+				my ($stationInfo, $acb) = @_;
+				return _getStationURLList($acb) if $stationInfo;
+				$acb->();
+			}
+		],
+		cb => sub {
+			main::INFOLOG && $log->is_info && $log->info("Complete RP Station Information: " . Data::Dump::dump($stations));
 		}
-	)->get(CHANNEL_LIST_URL);
+	);
 
 	Slim::Utils::Timers::setTimer(undef, time + REFRESH_INTERVAL, \&init);
 }
@@ -89,16 +107,7 @@ sub getChannelMap {
 }
 
 sub _gotChannelList {
-	my $http = shift;
-
-	my $stationInfo = eval { from_json($http->content) };
-
-	if ($@) {
-		$log->error("Failed to parse channel list: $@");
-	}
-	else {
-		main::INFOLOG && $log->is_info && $log->info("Received station information: " . Data::Dump::dump($stationInfo));
-	}
+	my ($stationInfo, $cb) = @_;
 
 	if ($stationInfo && ref $stationInfo && ref $stationInfo eq 'ARRAY' && grep { !$stations->{$_->{stream_name}} } @$stationInfo) {
 		main::INFOLOG && $log->is_info && $log->info("Found new station information: " . Data::Dump::dump(grep { !$stations->{$_->{stream_name}} } @$stationInfo));
@@ -107,8 +116,6 @@ sub _gotChannelList {
 			next unless ref $_ and ref $_ eq 'HASH';
 
 			if ($_->{chan} && $_->{stream_name} && $_->{title}) {
-				$_->{title} =~ s/^RP //;
-
 				my $station = $stations->{$_->{stream_name}} ||= {
 					tag => $_->{stream_name}
 				};
@@ -119,14 +126,26 @@ sub _gotChannelList {
 			}
 		}
 
-		Slim::Networking::SimpleAsyncHTTP->new(
-			\&_gotStationURLList,
-			sub {
-				my ($http, $error) = @_;
-				$log->error("Failed to look up new URL list: $error" );
-			}
-		)->get(STATION_URL_LIST_URL);
+		return $cb->($stationInfo);
 	}
+
+	$cb->();
+}
+
+sub _getStationURLList {
+	my ($cb) = @_;
+	Slim::Networking::SimpleAsyncHTTP->new(
+		sub {
+			my ($http) = @_;
+			_gotStationURLList($http);
+			$cb->();
+		},
+		sub {
+			my ($http, $error) = @_;
+			$log->error("Failed to look up new URL list: $error" );
+			$cb->();
+		}
+	)->get(STATION_URL_LIST_URL);
 }
 
 sub _gotStationURLList {
@@ -172,7 +191,7 @@ sub _gotStationURLList {
 sub _createStation {
 	my ($url, $tag, $name, $quality) = @_;
 
-	my $station = $stations->{$tag} ||= {};
+	my $station = $stations->{"$tag-mix"} ||= {};
 	$station->{name} ||= $name;
 	$station->{$quality} = $url;
 };

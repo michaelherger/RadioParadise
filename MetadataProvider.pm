@@ -27,7 +27,7 @@ my $channelMap = {};
 sub init {
 	$channelMap = Plugins::RadioParadise::Stations::getChannelMap();
 
-	my $tags = join('-|', keys %$channelMap) . '-';
+	my $tags = join('-|', map { s/-mix//; $_ } keys %$channelMap) . '-';
 	my $flacUrlRegex  = qr/\.radioparadise\.com\/(?:${tags})?flac/;
 	my $lossyUrlRegex  = qr/\.radioparadise\.com\/(?:${tags}|aac-|mp3-)(?:128|192|320)/;
 
