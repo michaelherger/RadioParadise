@@ -15,10 +15,12 @@ PLUGIN_RADIO_PARADISE_ECLECTIC_MIX
 
 PLUGIN_RADIO_PARADISE_LOSSLESS_INTERACTIVE
 	EN	FLAC Interactive
+	FR	FLAC interactif
 	NL	FLAC interactief
 
 PLUGIN_RADIO_PARADISE_LOSSLESS
 	EN	FLAC Regular Stream
+	FR	FLAC habituel
 	NL	FLAC reguliere stream
 
 PLUGIN_RADIO_PARADISE_AAC320
@@ -39,7 +41,7 @@ PLUGIN_RADIO_PARADISE_MP3_192
 PLUGIN_RADIO_PARADISE_DESC
 	DE	Radio Paradise verlustfrei! Und ein paar andere Funktionen.
 	EN	Lossless Radio Paradise - and then some.
-	FR	Accédez à Radio Paradise (streaming en compression sans perte) et bénéficiez de quelques bonus !
+	FR	Radio Paradise en compression sans perte et avec quelques bonus.
 	NL	Lossless Radio Paradise! En nog een paar andere functies.
 
 PLUGIN_RADIO_PARADISE_ENABLE_HD
@@ -93,13 +95,13 @@ PLUGIN_RADIO_PARADISE_SESSION
 PLUGIN_RADIO_PARADISE_AUTH_DESC
 	DE	Beachten Sie bitte, dass das Passwort NICHT gespeichert wird.
 	EN	Please note that the credentials are not stored.
-	FR	Veuillez noter que le mot de passe n'est pas enregistré.
+	FR	Veuillez noter que les informations d'identification ne sont pas stockées.
 	NL	Houd er rekening mee dat de inlog gegevens niet worden opgeslagen.
 
 PLUGIN_RADIO_PARADISE_VALID_THRU
 	DE	(gültig bis: %s)
 	EN	(valid thru: %s)
-	FR	(valable jusqu'à : %s)
+	FR	(valable jusqu'au : %s)
 	NL	(geldig tot: %s)
 
 PLUGIN_RADIO_PARADISE_RATE
@@ -180,18 +182,22 @@ PLUGIN_RADIO_PARADISE_MENULOCATION
 	DE	Menüwahl
 	EN	Show in menu
 	FR	Afficher dans le menu
+	NL	Toon in menu
 
 PLUGIN_RADIO_PARADISE_MENULOCATION_DESC
 	DE	Wählen Sie, ob das Plugin in "Eigene Anwendungen" oder "Radio" auftauchen soll. Bitte beachten Sie, dass Sie den Server neu starten müssen, um die Änderung zu aktivieren.
 	EN	Select if you want the plugin to appear in "My Apps" or "Radio". Note that you will need to restart the server after changing this setting.
-	FR	Sélectionnez si vous souhaitez que le plugin apparaisse dans le menu "Mes applications" ou "Radio". Notez que vous devrez redémarrer le serveur après avoir modifié ce paramètre.
+	FR	Choisissez si le plugin apparaît dans le menu "Mes applications" ou "Radio". Notez que vous devez redémarrer le serveur après avoir modifié ce paramètre.
+	NL	Bepaal of de plugin verschijnt in "Mijn Applicaties" of "Radio". De server moet opnieuw worden gestart bij het veranderen van de keuze.
 
 PLUGIN_RADIO_PARADISE_REPLAYGAIN
 	DE	Lautstärkeregelung
 	EN	Volume adjustment
-	FR	Réglage du volume
+	FR	Ajustement du volume
+	NL	Volumeaanpassing
 
 PLUGIN_RADIO_PARADISE_REPLAYGAIN_DESC
 	DE	Zusätzlicher Betrag der Lautstärkeanpassung, der nach der „Anpassung für Internet-Streams“ angewendet werden soll (nur FLAC Interactive-Streams).
 	EN	Additional amount of volume adjustment to be applied after the "Default Adjustment for Remote Streams" (FLAC Interactive streams only).
-	FR	Quantité supplémentaire d'ajustement du volume à appliquer après le "Ajustement du volume pour le streaming Internet" (flux FLAC Interactive uniquement).
+	FR	Ajustement complémentaire à celui défini dans "Ajustement du volume pour le streaming Internet" (seulement pour les flux FLAC interactifs).
+	NL	Extra hoeveelheid volumeaanpassing die wordt toegepast na de "Standaard volumeaanpassing voor externe streams" (alleen FLAC interactieve streams).
