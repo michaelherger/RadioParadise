@@ -4,6 +4,8 @@ use strict;
 
 use Digest::MD5 qw(md5_hex);
 use JSON::XS::VersionOneAndTwo;
+use URI;
+use URI::QueryParam;
 
 use Slim::Networking::SimpleAsyncHTTP;
 use Slim::Utils::Log;
@@ -11,14 +13,17 @@ use Slim::Utils::Log;
 # from J.F. (RP), October '24:
 # "Some of the calls reference a source id.  It's just for tracking any issues. Yours  is 21."
 use constant SOURCE_ID => 21;
-use constant AUTH_URL => 'https://api.radioparadise.com/api/auth';
-use constant CHANNEL_LIST_URL => 'https://api.radioparadise.com/api/list_chan?C_user_id=%s&ver=2&source=' . SOURCE_ID;
-use constant GAPLESS_URL => 'https://api.radioparadise.com/api/gapless?C_user_id=%s&player_id=%s&chan=%s&bitrate=4&numSongs=1&source=' . SOURCE_ID;
+use constant BASE_URL => 'https://api.radioparadise.com';
+use constant AUTH_URL => BASE_URL . '/api/auth';
+use constant CHANNEL_LIST_URL => BASE_URL . '/api/list_chan?C_user_id=%s&ver=2&source=' . SOURCE_ID;
+use constant GAPLESS_URL => BASE_URL . '/api/gapless';
+use constant UPDATE_HISTORY_URL => BASE_URL . '/api/update_history';
+use constant UPDATE_PAUSE_URL => BASE_URL . '/api/update_pause';
 use constant FALLBACK_IMG_BASE => '//img.radioparadise.com/';
 
 my $log = logger('plugin.radioparadise');
 
-my ($userId, $imageBase, %maxEventId);
+my ($userId, $countryCode, $imageBase, %maxEventId);
 
 sub auth {
 	my ($class, $cb) = @_;
@@ -29,6 +34,7 @@ sub auth {
 
 		if ($result && ref $result) {
 			$userId = $result->{user_id};
+			$countryCode = $result->{country_code};
 		}
 
 		$cb->($userId);
@@ -58,10 +64,18 @@ sub getNextTrack {
 
 	my $playerId = md5_hex($args->{client});
 	my $channel  = $args->{channel} || 0;
-	my $url = sprintf(GAPLESS_URL, $userId, $playerId, $channel);
+
+	my $queryParams = {
+		C_user_id => $userId,
+		player_id => $playerId,
+		chan      => $channel,
+		bitrate   => 4,
+		numSongs  => 1,
+		source    => SOURCE_ID,
+	};
 
 	if (my $event = $args->{event}) {
-		$url .= "&event=$event";
+		$queryParams->{event} = $event;
 	}
 
 	_get(
@@ -71,7 +85,64 @@ sub getNextTrack {
 			$maxEventId{$channel} = $trackInfo->{max_gapless_event_id} if $trackInfo->{max_gapless_event_id};
 			$cb->($trackInfo);
 		},
-		$url,
+		GAPLESS_URL,
+		{
+			queryParams => $queryParams
+		}
+	);
+}
+
+sub updateHistory {
+	my ($class, $cb, $songInfo, $args) = @_;
+
+	return unless $songInfo && $songInfo->{event_id} && $songInfo->{song_id} && $args->{client};
+
+	my $playerId = md5_hex($args->{client});
+	my $channel  = $args->{channel} || 0;
+	my $position = $args->{position} || 0;
+
+	_get(
+		sub { $cb->(@_) if $cb; },
+		UPDATE_HISTORY_URL,
+		{
+			queryParams => {
+				C_user_id => $userId,
+				song_id   => $songInfo->{song_id},
+				player_id => $playerId,
+				event     => $songInfo->{event_id},
+				chan      => $channel,
+				country_code => $countryCode,
+				'time'    => time() - $position,
+				playtime_secs => time(),
+				source    => SOURCE_ID,
+			},
+		}
+	);
+}
+
+sub updatePause {
+	my ($class, $cb, $songInfo, $args) = @_;
+
+	return unless $songInfo && $songInfo->{event_id} && $songInfo->{song_id} && $args->{client};
+
+	my $playerId = md5_hex($args->{client});
+	my $channel  = $args->{channel} || 0;
+	my $position = $args->{position} || 0;
+
+	_get(
+		sub { $cb->(@_) if $cb; },
+		UPDATE_PAUSE_URL,
+		{
+			queryParams => {
+				pause     => $position * 1000,
+				C_user_id => $userId,
+				player_id => $playerId,
+				event     => $songInfo->{event_id},
+				chan      => $channel,
+				playtime_secs => time(),
+				source    => SOURCE_ID,
+			},
+		}
 	);
 }
 
@@ -104,15 +175,22 @@ sub _get {
 		$params->{expires} = $ttl;
 	}
 
+	if (my $queryParams = $args->{queryParams}) {
+		my $uri   = URI->new($url);
+		$uri->query_form(%$queryParams);
+		$url = $uri->as_string();
+	}
+
 	main::INFOLOG && $log->is_info && $log->info("Getting $url");
 	Slim::Networking::SimpleAsyncHTTP->new(
 		sub {
 			my $http = shift;
 
-			my $responseBody = eval { from_json($http->content) };
+			my $responseBody = eval { $http->content ? from_json($http->content) : '' };
 
 			if ($@) {
 				$log->error("Failed to parse result for $url: $@");
+				main::INFOLOG && $log->is_info && $log->info(Data::Dump::dump($http));
 			}
 
 			main::DEBUGLOG && $log->is_debug && $log->debug('Got response:' . Data::Dump::dump($responseBody));

@@ -46,8 +46,6 @@ $prefs->init({
 	replayGain => 0
 });
 
-# s13606 is the TuneIn ID for RP - Shoutcast URLs are recognized by the cover URL. Hopefully.
-#my $radioUrlRegex = qr/(?:\.radioparadise\.com|id=s13606|shoutcast\.com.*id=(785339|101265|1595911|674983|308768|1604072|1646896|1695633|856611))/i;
 my $radioUrlRegex = qr/(?:^radioparadise:|\.radioparadise\.com|id=s13606|radio_paradise)/i;
 my $songImgRegex  = qr/radioparadise\.com\/graphics\/covers\/[sml]\/.*/;
 my $hdImgRegex    = qr/radioparadise\.com.*\/graphics\/tv_img/;
@@ -91,8 +89,6 @@ sub initPlugin {
 				my ($url, $spec) = @_;
 
 				my $size = Slim::Web::ImageProxy->getRightSize($spec, {
-# don't use smaller than 640, as we pre-cache 640 anyway
-#					320  => '/320',
 					640  => '/640',
 				}) || '';
 				$url =~ s/\/640\//$size\//;
@@ -119,6 +115,8 @@ sub initPlugin {
 
 		require Plugins::RadioParadise::Favorites;
 		Plugins::RadioParadise::Favorites->init();
+
+		Slim::Control::Request::subscribe(\&_onPauseEvent, [['playlist'], ['pause','stop']]);
 
 		if (main::WEBUI) {
 			require Plugins::RadioParadise::Settings;
@@ -168,9 +166,6 @@ sub handleFeed {
 	}
 
 	$client = $client->master;
-	my $song = $client->playingSong();
-	my $track = $song->track if $song;
-	my $url = $track->url if $track;
 
 	my $items = [];
 
@@ -466,6 +461,37 @@ sub _setArtwork {
 	}
 	else {
 		$setArtwork->();
+	}
+}
+
+sub _onPauseEvent {
+	my $request = shift;
+	my $client  = $request->client || return;
+
+	return if $client->isSynced() && !Slim::Player::Sync::isMaster($client);
+
+	my $song = $client->playingSong();
+
+	if (!$song && blessed $song && $song->track) {
+		main::INFOLOG && $log->is_info && $log->info("Not a Radio Paradise stream");
+		return;
+	}
+
+	my $url = $song->track->url || '';
+	if ($url && $url =~ /^radioparadise:/) {
+		my $channel = Plugins::RadioParadise::API->getChannelIdFromUrl($url);
+		my $songInfo = Plugins::RadioParadise::ProtocolHandler->getBlockData($song);
+
+		# XXXX - We don't currently allow pausing. Unfortunately the position in a
+		# stopped stream is always 0 - keep track ourselves... or fall back to random position...
+		my $position = time() - $songInfo->{startPlaybackTime};
+		$position = $song->duration * rand(1) if $position > $song->duration;
+
+		Plugins::RadioParadise::API->updatePause(undef, $songInfo, {
+			client => $client,
+			channel => $channel,
+			position => $position,
+		});
 	}
 }
 

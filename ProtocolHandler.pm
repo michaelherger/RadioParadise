@@ -36,6 +36,7 @@ sub new {
 	return $sock;
 }
 
+# TODO - investigate wheter we can support seeking
 sub canSeek { 0 }
 sub isRemote { 1 }
 sub canDirectStream { 0 }
@@ -90,6 +91,12 @@ sub getNextTrack {
 				my $songdata = $songs->[0];
 				__PACKAGE__->setBlockData($songdata);
 				$song->streamUrl($songdata->{gapless_url});
+
+				Plugins::RadioParadise::API->updateHistory(undef, $songdata, {
+					channel => $channel,
+					client => $client,
+				}) if !$client->isSynced() || Slim::Player::Sync::isMaster($client);
+
 				$successCb->();
 				return;
 			}
@@ -106,13 +113,11 @@ sub getNextTrack {
 }
 
 sub getMetadataFor {
-	my ( $class, $client, $url, $forceCurrent ) = @_;
+	my ( $class, $client, $url ) = @_;
 
 	$client = $client->master;
-	my $song = $forceCurrent ? $client->streamingSong() : $client->playingSong();
+	my $song = $client->playingSong();
 	return {} unless $song;
-
-	main::DEBUGLOG && $log->is_debug && $log->debug("Refreshing metadata");
 
 	my $icon = $class->getIcon();
 	my $songdata = $class->getBlockData($song);
@@ -167,10 +172,11 @@ sub getBlockData {
 }
 
 sub setBlockData {
-	my ($class, $data) = @_;
+	my ($class, $data, $setStartTime) = @_;
 
 	return unless $data && ref $data && $data->{gapless_url};
 
+	$data->{startPlaybackTime} = time();
 	$blockData{_cleanupBlockURL($data->{gapless_url})} = $data;
 }
 
