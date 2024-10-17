@@ -4,7 +4,7 @@ use strict;
 
 use Digest::MD5 qw(md5_hex);
 use JSON::XS::VersionOneAndTwo;
-use URI;
+use URI ();
 use URI::QueryParam;
 
 use Slim::Networking::SimpleAsyncHTTP;
@@ -76,6 +76,10 @@ sub getNextTrack {
 
 	if (my $event = $args->{event}) {
 		$queryParams->{event} = $event;
+	}
+
+	if (my $action = $args->{action}) {
+		$queryParams->{action} = $action;
 	}
 
 	_get(
@@ -165,7 +169,7 @@ sub getMaxEventId {
 sub _get {
 	my ($cb, $url, $args) = @_;
 
-	my $params = { 
+	my $params = {
 		cache => 0,
 		timeout => 15,
 	};

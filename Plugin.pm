@@ -5,7 +5,6 @@ use strict;
 use base qw(Slim::Plugin::OPMLBased);
 
 use vars qw($VERSION);
-use Digest::MD5 qw(md5_hex);
 use Scalar::Util qw(blessed);
 
 use Slim::Menu::TrackInfo;

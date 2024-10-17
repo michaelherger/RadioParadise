@@ -77,9 +77,14 @@ sub getNextTrack {
 
 	my $client = $song->master;
 	my $event = '';
+	my $action;
 	my $channel = Plugins::RadioParadise::API->getChannelIdFromUrl($song->track()->url);
 
-	if ( my $blockData = $class->getBlockData($song) ) {
+	# if the stream URL is the radioparadise URL, we're starting over - don't restore pevious position
+	if ( $song->streamUrl() =~ /^radioparadise:/ ) {
+		$action = 'sync_chan_' . $channel;
+	}
+	elsif ( my $blockData = $class->getBlockData($song) ) {
 		$event = $blockData->{event_id};
 	}
 
@@ -109,6 +114,7 @@ sub getNextTrack {
 		client => $client,
 		channel => $channel,
 		event => $event,
+		action => $action,
 	});
 }
 

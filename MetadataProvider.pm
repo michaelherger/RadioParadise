@@ -3,7 +3,6 @@ package Plugins::RadioParadise::MetadataProvider;
 use strict;
 
 use JSON::XS::VersionOneAndTwo;
-use List::Util qw(min);
 
 use Slim::Formats::RemoteMetadata;
 use Slim::Music::Info;
