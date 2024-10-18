@@ -27,7 +27,7 @@ use constant DEFAULT_ARTWORK => 'http://www.radioparadise.com/graphics/metadata_
 use constant HD_URL          => 'http://www.radioparadise.com/ajax_image.php?width=1280';
 use constant HD_INTERVAL     => 15;
 use constant HD_PATH         => 'slideshow/720/';
-use constant INFO_URL        => 'https://radioparadise.com/music/song/%s';
+use constant INFO_URL        => 'http://radioparadise.com/music/song/%s';
 
 # most lossless features require SSL
 my $canLossless = Slim::Networking::Async::HTTP->hasSSL();
@@ -487,7 +487,7 @@ sub _onPauseEvent {
 		$position = $song->duration * rand(1) if $position > $song->duration;
 
 		Plugins::RadioParadise::API->updatePause(undef, $songInfo, {
-			client => $client,
+			client => $client->id,
 			channel => $channel,
 			position => $position,
 		});

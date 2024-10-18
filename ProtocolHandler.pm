@@ -1,7 +1,7 @@
 package Plugins::RadioParadise::ProtocolHandler;
 
 use strict;
-use base 'Slim::Player::Protocols::HTTPS';
+use base qw(Slim::Player::Protocols::HTTPS);
 
 use Tie::Cache::LRU;
 
@@ -99,7 +99,7 @@ sub getNextTrack {
 
 				Plugins::RadioParadise::API->updateHistory(undef, $songdata, {
 					channel => $channel,
-					client => $client,
+					client => $client->id,
 				}) if !$client->isSynced() || Slim::Player::Sync::isMaster($client);
 
 				$successCb->();
@@ -111,7 +111,7 @@ sub getNextTrack {
 		main::INFOLOG && $log->is_info && $log->info(Data::Dump::dump($trackInfo));
 		$errorCb->();
 	}, {
-		client => $client,
+		client => $client->id,
 		channel => $channel,
 		event => $event,
 		action => $action,
@@ -189,9 +189,6 @@ sub setBlockData {
 sub _cleanupBlockURL {
 	my $url = shift || '';
 	$url =~ s/\?.*//;
-
-	# XXX - https
-	$url =~ s/^http:/https:/;
 	return $url;
 }
 

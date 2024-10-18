@@ -13,7 +13,7 @@ use Slim::Utils::Log;
 # from J.F. (RP), October '24:
 # "Some of the calls reference a source id.  It's just for tracking any issues. Yours  is 21."
 use constant SOURCE_ID => 21;
-use constant BASE_URL => 'https://api.radioparadise.com';
+use constant BASE_URL => 'http://api.radioparadise.com';
 use constant AUTH_URL => BASE_URL . '/api/auth';
 use constant CHANNEL_LIST_URL => BASE_URL . '/api/list_chan?C_user_id=%s&ver=2&source=' . SOURCE_ID;
 use constant GAPLESS_URL => BASE_URL . '/api/gapless';
@@ -62,7 +62,7 @@ sub getNextTrack {
 
 	main::INFOLOG && $log->is_info && $log->info("Getting track information...");
 
-	my $playerId = md5_hex($args->{client});
+	my $playerId = _getPlayerId($args->{client});
 	my $channel  = $args->{channel} || 0;
 
 	my $queryParams = {
@@ -101,7 +101,7 @@ sub updateHistory {
 
 	return unless $songInfo && $songInfo->{event_id} && $songInfo->{song_id} && $args->{client};
 
-	my $playerId = md5_hex($args->{client});
+	my $playerId = _getPlayerId($args->{client});
 	my $channel  = $args->{channel} || 0;
 	my $position = $args->{position} || 0;
 
@@ -129,7 +129,7 @@ sub updatePause {
 
 	return unless $songInfo && $songInfo->{event_id} && $songInfo->{song_id} && $args->{client};
 
-	my $playerId = md5_hex($args->{client});
+	my $playerId = _getPlayerId($args->{client});
 	my $channel  = $args->{channel} || 0;
 	my $position = $args->{position} || 0;
 
@@ -152,7 +152,7 @@ sub updatePause {
 
 sub getImageUrl {
 	my ($class, $songInfo) = @_;
-	return 'https:' . ($imageBase || FALLBACK_IMG_BASE) . ($songInfo->{cover_art} || $songInfo->{cover_large} || $songInfo->{cover_medium} || $songInfo->{cover_small});
+	return 'http:' . ($imageBase || FALLBACK_IMG_BASE) . ($songInfo->{cover_art} || $songInfo->{cover_large} || $songInfo->{cover_medium} || $songInfo->{cover_small});
 }
 
 sub getChannelIdFromUrl {
@@ -164,6 +164,11 @@ sub getChannelIdFromUrl {
 sub getMaxEventId {
 	my ($class, $channel) = @_;
 	return $maxEventId{$channel || 0} || -1;
+}
+
+sub _getPlayerId {
+	my ($client) = shift;
+	return md5_hex(ref $client ? $client->id : $client);
 }
 
 sub _get {
@@ -180,7 +185,7 @@ sub _get {
 	}
 
 	if (my $queryParams = $args->{queryParams}) {
-		my $uri   = URI->new($url);
+		my $uri = URI->new($url);
 		$uri->query_form(%$queryParams);
 		$url = $uri->as_string();
 	}
@@ -190,9 +195,9 @@ sub _get {
 		sub {
 			my $http = shift;
 
-			my $responseBody = eval { $http->content ? from_json($http->content) : '' };
+			my $responseBody = eval { from_json($http->content) };
 
-			if ($@) {
+			if ($@ && $http->content) {
 				$log->error("Failed to parse result for $url: $@");
 				main::INFOLOG && $log->is_info && $log->info(Data::Dump::dump($http));
 			}

@@ -12,8 +12,8 @@ use Plugins::RadioParadise::API;
 use Plugins::RadioParadise::MetadataProvider;
 
 use constant REFRESH_INTERVAL => 86400;
-use constant CHANNEL_LIST_URL => 'https://api.radioparadise.com/api/list_chan';
-use constant STATION_URL_LIST_URL => 'https://img.radioparadise.com/content/prod/listen/streams/template.html';
+use constant CHANNEL_LIST_URL => 'http://api.radioparadise.com/api/list_chan';
+use constant STATION_URL_LIST_URL => 'http://img.radioparadise.com/content/prod/listen/streams/template.html';
 
 my $log = logger('plugin.radioparadise');
 

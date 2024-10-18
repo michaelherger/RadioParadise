@@ -10,7 +10,7 @@ use Slim::Networking::SimpleAsyncHTTP;
 use Slim::Utils::Log;
 
 use constant AUTH_URL => 'https://api.radioparadise.com/api/auth?username=%s&passwd=%s';
-use constant RATING_URL => 'https://api.radioparadise.com/api/rating?song_id=%s&rating=%s';
+use constant RATING_URL => 'http://api.radioparadise.com/api/rating?song_id=%s&rating=%s';
 
 my $log = logger('plugin.radioparadise');
 

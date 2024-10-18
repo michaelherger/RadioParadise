@@ -13,7 +13,7 @@ use Plugins::RadioParadise::Favorites;
 # XXX - make this a pref?
 use constant LOWER_LIMIT => 5;
 use constant MAX_ITEMS => 250;
-use constant FAVORITES_URL => 'https://api.radioparadise.com/siteapi.php?file=account%%3A%%3Aprofile-favorites&profile_user_id=%s&mode=High&lower_limit=%s&upper_limit=10&list_limit=50&list_offset=%s';
+use constant FAVORITES_URL => 'http://api.radioparadise.com/siteapi.php?file=account%%3A%%3Aprofile-favorites&profile_user_id=%s&mode=High&lower_limit=%s&upper_limit=10&list_limit=50&list_offset=%s';
 
 my $log = logger('plugin.radioparadise');
 

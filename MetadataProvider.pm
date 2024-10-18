@@ -15,7 +15,7 @@ use Slim::Utils::Timers;
 use Plugins::RadioParadise::Stations;
 
 use constant ICON     => Plugins::RadioParadise::Plugin->_pluginDataFor('icon');
-use constant META_URL => 'https://api.radioparadise.com/api/now_playing?chan=%s';
+use constant META_URL => 'http://api.radioparadise.com/api/now_playing?chan=%s';
 use constant POLLRATE => 60;
 
 my $cache = Slim::Utils::Cache->new();
