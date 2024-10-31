@@ -476,7 +476,7 @@ sub _onPauseEvent {
 		return;
 	}
 
-	my $url = $song->track->url || '';
+	my $url = $song->track->url || '' if $song;
 	if ($url && $url =~ /^radioparadise:/) {
 		my $channel = Plugins::RadioParadise::API->getChannelIdFromUrl($url);
 		my $songInfo = Plugins::RadioParadise::ProtocolHandler->getBlockData($song);
