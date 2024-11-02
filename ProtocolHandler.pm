@@ -27,13 +27,11 @@ sub new {
 
 	main::DEBUGLOG && $log->debug( 'Remote streaming Radio Paradise track: ' . $streamUrl );
 
-	my $sock = $class->SUPER::new( {
+	return $class->SUPER::new( {
 		url     => $streamUrl,
 		song    => $args->{song},
 		client  => $client,
-	} ) || return;
-
-	return $sock;
+	} );
 }
 
 # TODO - investigate wheter we can support seeking
@@ -94,6 +92,18 @@ sub getNextTrack {
 		if (my $songs = $trackInfo->{songs}) {
 			if (ref $songs) {
 				my $songdata = $songs->[0];
+
+				my $currentEventId = $trackInfo->{current_event_id} || 0;
+				my $desiredEventId = $songdata->{event_id} || 0;
+
+				if ($desiredEventId < $currentEventId) {
+					$log->error("We've tried to play a song from the past - reset position: $desiredEventId < $currentEventId");
+
+					$song->streamUrl(sprintf('radioparadise://4-%s.flac', $channel));
+					$class->getNextTrack($song, $successCb, $errorCb);
+					return;
+				}
+
 				__PACKAGE__->setBlockData($songdata);
 				$song->streamUrl($songdata->{gapless_url});
 
