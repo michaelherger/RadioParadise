@@ -96,16 +96,24 @@ sub getNextTrack {
 				my $currentEventId = $trackInfo->{current_event_id} || 0;
 				my $desiredEventId = $songdata->{event_id} || 0;
 
-				if ($desiredEventId < $currentEventId) {
+				if ($desiredEventId - $currentEventId < -3) {
 					$log->error("We've tried to play a song from the past - reset position: $desiredEventId < $currentEventId");
 
 					$song->streamUrl(sprintf('radioparadise://4-%s.flac', $channel));
 					$class->getNextTrack($song, $successCb, $errorCb);
 					return;
 				}
+				elsif ($desiredEventId < $currentEventId) {
+					$log->info("We seem to be behind current position, but not too badly - ignore: $desiredEventId < $currentEventId");
+				}
 
 				__PACKAGE__->setBlockData($songdata);
 				$song->streamUrl($songdata->{gapless_url});
+
+				# tell Jive clients to refresh the status, or they wouldn't pick up the new duration
+				Slim::Music::Info::setDelayedCallback( $client, sub {
+					Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
+				} );
 
 				Plugins::RadioParadise::API->updateHistory(undef, $songdata, {
 					channel => $channel,
@@ -129,10 +137,10 @@ sub getNextTrack {
 }
 
 sub getMetadataFor {
-	my ( $class, $client, $url ) = @_;
+	my ( $class, $client, $url, undef, $song ) = @_;
 
 	$client = $client->master;
-	my $song = $client->playingSong();
+	$song ||= $client->playingSong();
 	return {} unless $song;
 
 	my $icon = $class->getIcon();
@@ -147,8 +155,8 @@ sub getMetadataFor {
 			album  => $songdata->{album},
 			title  => $songdata->{title},
 			year   => $songdata->{year},
-			duration => $songdata->{duration} / 1000,
-			secs   => $songdata->{duration} / 1000,
+			duration => int($songdata->{duration} / 1000),
+			secs   => int($songdata->{duration} / 1000),
 			cover  => Plugins::RadioParadise::API->getImageUrl($songdata),
 			bitrate=> $bitrate,
 			slideshow => $songdata->{slideshow} || [],
