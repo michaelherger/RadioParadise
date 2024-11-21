@@ -189,7 +189,13 @@ sub handleFeed {
 				url  => $_->{flac},
 			} if $_->{flac};
 
-			if ($canAAC && ($_->{aac_128} || $_->{aac_320})) {
+			if ($canAAC && ($_->{aac} || $_->{aac_128} || $_->{aac_320})) {
+				push @$stationMenu,{
+					type => 'audio',
+					name => $prefix . $client->string('PLUGIN_RADIO_PARADISE_AAC'),
+					url => $_->{aac},
+				} if $_->{aac};
+
 				push @$stationMenu, {
 					type => 'audio',
 					name => $prefix . $client->string('PLUGIN_RADIO_PARADISE_AAC320'),
