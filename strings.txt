@@ -60,14 +60,14 @@ PLUGIN_RADIO_PARADISE_DESC
 	NL	Lossless Radio Paradise! En nog een paar andere functies.
 
 PLUGIN_RADIO_PARADISE_ENABLE_HD
-	DA	Aktivér Radio Paradise HD billeder
+	DA	Aktivér Radio Paradise HD
 	DE	Radio Paradise HD aktivieren
 	EN	Enable Radio Paradise HD images
 	FR	Activer Radio Paradise HD
 	NL	Radio Paradise HD inschakelen
 
 PLUGIN_RADIO_PARADISE_DISABLE_HD
-	DA	Deaktiver Radio Paradise HD billeder
+	DA	Deaktiver Radio Paradise HD
 	DE	Radio Paradise HD deaktivieren
 	EN	Disable Radio Paradise HD images
 	FR	Désactiver Radio Paradise HD
@@ -102,7 +102,7 @@ PLUGIN_RADIO_PARADISE_SONG_ON_RP
 	NL	Informatie over het nummer op Radio Paradise
 
 PLUGIN_RADIO_PARADISE_SONG_ID
-	DA	Radio Paradise Sang-ID: %s
+	DA	Radio Paradise sang-ID: %s
 	DE	Radio Paradise Song-ID: %s
 	EN	Radio Paradise Song ID: %s
 	FR	Radio Paradise Song ID : %s
@@ -239,7 +239,7 @@ PLUGIN_RADIO_PARADISE_REPLAYGAIN
 	NL	Volumeaanpassing
 
 PLUGIN_RADIO_PARADISE_REPLAYGAIN_DESC
-	DA	Yderligere mængde af lydstyrkejustering, der skal anvendes efter "Standardjustering for streams" (kun interaktive FLAC-streams).
+	DA	Yderligere mængde af lydstyrkejustering, der skal anvendes efter "Standardjustering for streams" (kun for interaktive FLAC-streams).
 	DE	Zusätzlicher Betrag der Lautstärkeanpassung, der nach der „Anpassung für Internet-Streams“ angewendet werden soll (nur FLAC Interactive-Streams).
 	EN	Additional amount of volume adjustment to be applied after the "Default Adjustment for Remote Streams" (FLAC Interactive streams only).
 	FR	Ajustement complémentaire à celui défini dans "Ajustement du volume pour le streaming Internet" (seulement pour les flux FLAC interactifs).
