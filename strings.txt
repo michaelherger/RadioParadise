@@ -17,194 +17,229 @@ PLUGIN_RADIO_PARADISE_SERENITY
 	EN	Serenity
 
 PLUGIN_RADIO_PARADISE_LOSSLESS_INTERACTIVE
+	DA	FLAC interaktiv
 	EN	FLAC Interactive
 	FR	FLAC interactif
 	NL	FLAC interactief
 
 PLUGIN_RADIO_PARADISE_LOSSLESS
+	DA	FLAC normal stream
 	EN	FLAC Regular Stream
 	FR	FLAC habituel
 	NL	FLAC reguliere stream
 
 PLUGIN_RADIO_PARADISE_AAC320
+	DA	AAC 320 kbit/s
 	EN	AAC 320kbps
 	FR	AAC 320 kbit/s
 	NL	AAC 320 kbit/s
 
 PLUGIN_RADIO_PARADISE_AAC128
+	DA	AAC 128 kbit/s
 	EN	AAC 128kbps
 	FR	AAC 128 kbit/s
 	NL	AAC 128 kbit/s
 
 PLUGIN_RADIO_PARADISE_AAC
+	DA	AAC 64 kbit/s
 	EN	AAC 64kbps
 	FR	AAC 64 kbit/s
 	NL	AAC 64 kbit/s
 
 PLUGIN_RADIO_PARADISE_MP3_192
+	DA	AAC 192 kbit/s
 	EN	MP3 192kbps
 	FR	MP3 192 kbit/s
 	NL	AAC 192 kbit/s
 
 PLUGIN_RADIO_PARADISE_DESC
+	DA	Tabsfrit Radio Paradise og nogle flere funktioner.
 	DE	Radio Paradise verlustfrei! Und ein paar andere Funktionen.
 	EN	Lossless Radio Paradise - and then some.
 	FR	Radio Paradise en compression sans perte et avec quelques bonus.
 	NL	Lossless Radio Paradise! En nog een paar andere functies.
 
 PLUGIN_RADIO_PARADISE_ENABLE_HD
+	DA	Aktivér Radio Paradise HD
 	DE	Radio Paradise HD aktivieren
 	EN	Enable Radio Paradise HD images
 	FR	Activer Radio Paradise HD
 	NL	Radio Paradise HD inschakelen
 
 PLUGIN_RADIO_PARADISE_DISABLE_HD
+	DA	Deaktiver Radio Paradise HD
 	DE	Radio Paradise HD deaktivieren
 	EN	Disable Radio Paradise HD images
 	FR	Désactiver Radio Paradise HD
 	NL	Radio Paradise HD uitschakelen
 
 PLUGIN_RADIO_PARADISE_HD_ENABLED
+	DA	Radio Paradise HD aktiveret
 	DE	Radio Paradise HD aktiviert
 	EN	Radio Paradise HD enabled
 	FR	Radio Paradise HD activée
 	NL	Radio Paradise HD ingeschakeld
 
 PLUGIN_RADIO_PARADISE_HD_DISABLED
+	DA	Radio Paradise HD deaktiveret
 	DE	Radio Paradise HD deaktiviert
 	EN	Radio Paradise HD disabled
 	FR	Radio Paradise HD désactivée
 	NL	Radio Paradise HD uitgeschakeld
 
 PLUGIN_RADIO_PARADISE_MISSING_SSL
+	DA	Tabsfri streaming af Radio Paradise kræver Perl modulet IO::Socket::SSL. Venligst benyt installationsprogrammet for dit operativsystem til installation.
 	DE	Sie benötigen das Perl Modul IO::Socket::SSL! Ohne dieses Modul ist die Nutzung von Radio Paradise verlusfrei NICHT möglich. Bitte benutze den Paket-Manager deines Betriebssystems um es zu installieren.
 	EN	Radio Paradise lossless streaming requires the Perl module IO::Socket::SSL. Please use your operating system's package manager to install it.
 	FR	Le module Perl IO::Socket::SSL est indispensable pour Radio Paradise ! Utilisez le gestionnaire de paquets de votre système d'exploitation pour installer ce module.
 	NL	De Perl IO::Socket::SSL module is essentieel voor Radio Paradise! Gebruik de pakketbeheerder van het besturingssysteem om deze module te installeren.
 
 PLUGIN_RADIO_PARADISE_SONG_ON_RP
+	DA	Nummerinformation på Radio Paradise
 	DE	Titel-Information auf Radio Paradise
 	EN	Title information on Radio Paradise
 	FR	Informations sur le titre sur Radio Paradise
 	NL	Informatie over het nummer op Radio Paradise
 
 PLUGIN_RADIO_PARADISE_SONG_ID
+	DA	Radio Paradise sang-ID: %s
 	DE	Radio Paradise Song-ID: %s
 	EN	Radio Paradise Song ID: %s
 	FR	Radio Paradise Song ID : %s
 	NL	Radio Paradise Song ID: %s
 
 PLUGIN_RADIO_PARADISE_SESSION
+	DA	Logget ind som
 	DE	Angemeldet als
 	EN	Signed In As
 	FR	Connecté en tant que
 	NL	Aangemeld als
 
 PLUGIN_RADIO_PARADISE_AUTH_DESC
+	DA	Bemærk at login informationen ikke bliver lagret.
 	DE	Beachten Sie bitte, dass das Passwort NICHT gespeichert wird.
 	EN	Please note that the credentials are not stored.
 	FR	Veuillez noter que les informations d'identification ne sont pas stockées.
 	NL	Houd er rekening mee dat de inlog gegevens niet worden opgeslagen.
 
 PLUGIN_RADIO_PARADISE_VALID_THRU
+	DA	(gyldig til og med: %s)
 	DE	(gültig bis: %s)
 	EN	(valid thru: %s)
 	FR	(valable jusqu'au : %s)
 	NL	(geldig tot: %s)
 
 PLUGIN_RADIO_PARADISE_RATE
+	DA	Giv bedømmelse af denne sang til Radio Paradise
 	DE	Titel auf Radio Paradise bewerten
 	EN	Rate this song on Radio Paradise
 	FR	Noter le morceau sur Radio Paradise
 	NL	Beoordeel dit nummer op Radio Paradise
 
 PLUGIN_RADIO_PARADISE_RATED
+	DA	Bedømmelse er sendt
 	DE	Titel wurde bewertet
 	EN	Rating submitted
 	FR	Note transmise
 	NL	Beoordeling verstuurd
 
 PLUGIN_RADIO_PARADISE_RATE_FAILED
+	DA	Indsendelse af bedømmelse mislykkedes
 	DE	Titelbewertung fehlgeschlagen
 	EN	Failed to submit rating
 	FR	Échec de l'envoi de la note
 	NL	Beoordeling versturen mislukt
 
 PLUGIN_RADIO_PARADISE_RATING_10
+	DA	10 - Guddommelig
 	EN	10 - Godlike
 	FR	10 - Divin
 	NL	10 - Goddelijk
 
 PLUGIN_RADIO_PARADISE_RATING_9
+	DA	9 - Exceptionel
 	EN	9 - Outstanding
 	FR	9 - Exceptionnel
 	NL	9 - Exceptioneel
 
 PLUGIN_RADIO_PARADISE_RATING_8
+	DA	8 - Fremragende
 	EN	8 - Most Excellent
 	FR	8 - Excellent
 	NL	8 - Excellent
 
 PLUGIN_RADIO_PARADISE_RATING_7
+	DA	7 - Meget God
 	EN	7 - Quite Likeable
 	FR	7 - Bien sympathique
 	NL	7 - Heel aardig
 
 PLUGIN_RADIO_PARADISE_RATING_6
+	DA	6 - God
 	EN	6 - Pretty Good
 	FR	6 - Plutôt bon
 	NL	6 - Best goed
 
 PLUGIN_RADIO_PARADISE_RATING_5
+	DA	5 - OK
 	EN	5 - Decent
 	FR	5 - Décent
 	NL	5 - Redelijk
 
 PLUGIN_RADIO_PARADISE_RATING_4
+	DA	4 - Knap acceptabel
 	EN	4 - Acceptable
 	FR	4 - Juste acceptable
 	NL	4 - Acceptabel
 
 PLUGIN_RADIO_PARADISE_RATING_3
+	DA	3 - Undgå
 	EN	3 - Ho Hum
 	FR	3 - Bof
 	NL	3 - Mwah
 
 PLUGIN_RADIO_PARADISE_RATING_2
+	DA	2 - Dårlig
 	EN	2 - Marginal
 	FR	2 - A éviter
 	NL	2 - Vermijden
 
 PLUGIN_RADIO_PARADISE_RATING_1
+	DA	1 - Forfærdelig dårlig
 	EN	1 - Sucko-barfo
 	FR	1 - A fuir
 	NL	1 - Vluchten
 
 PLUGIN_RADIO_PARADISE_LASTMIX
+	DA	LastMix - Radio Paradise favoritter
 	DE	LastMix - Radio Paradise Favoriten
 	EN	LastMix - Radio Paradise Favorites
 	FR	LastMix - Favoris Radio Paradise
 	NL	LastMix - Radio Paradise Favorieten
 
 PLUGIN_RADIO_PARADISE_MENULOCATION
+	DA	Vis i menuen
 	DE	Menüwahl
 	EN	Show in menu
 	FR	Afficher dans le menu
 	NL	Toon in menu
 
 PLUGIN_RADIO_PARADISE_MENULOCATION_DESC
+	DA	Vælg om du vil vise plugin i 'Mine Apps' eller 'Radio'. Bemærk at ændring af denne indstilling kræver omstart af serveren.
 	DE	Wählen Sie, ob das Plugin in "Eigene Anwendungen" oder "Radio" auftauchen soll. Bitte beachten Sie, dass Sie den Server neu starten müssen, um die Änderung zu aktivieren.
 	EN	Select if you want the plugin to appear in "My Apps" or "Radio". Note that you will need to restart the server after changing this setting.
 	FR	Choisissez si le plugin apparaît dans le menu "Mes applications" ou "Radio". Notez que vous devez redémarrer le serveur après avoir modifié ce paramètre.
 	NL	Bepaal of de plugin verschijnt in "Mijn Applicaties" of "Radio". De server moet opnieuw worden gestart bij het veranderen van de keuze.
 
 PLUGIN_RADIO_PARADISE_REPLAYGAIN
+	DA	Volumenregulering
 	DE	Lautstärkeregelung
 	EN	Volume adjustment
 	FR	Ajustement du volume
 	NL	Volumeaanpassing
 
 PLUGIN_RADIO_PARADISE_REPLAYGAIN_DESC
+	DA	Yderligere mængde af lydstyrkejustering, der skal anvendes efter "Standardjustering for streams" (kun for interaktive FLAC-streams).
 	DE	Zusätzlicher Betrag der Lautstärkeanpassung, der nach der „Anpassung für Internet-Streams“ angewendet werden soll (nur FLAC Interactive-Streams).
 	EN	Additional amount of volume adjustment to be applied after the "Default Adjustment for Remote Streams" (FLAC Interactive streams only).
 	FR	Ajustement complémentaire à celui défini dans "Ajustement du volume pour le streaming Internet" (seulement pour les flux FLAC interactifs).
