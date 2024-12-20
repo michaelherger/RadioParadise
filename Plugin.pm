@@ -206,7 +206,7 @@ sub handleFeed {
 					type => 'audio',
 					name => $prefix . $client->string('PLUGIN_RADIO_PARADISE_AAC128'),
 					url => $_->{aac_128},
-				} if $_->{aac_320};
+				} if $_->{aac_128};
 			}
 			elsif ($_->{mp3}) {
 				push @$stationMenu, {
@@ -219,6 +219,7 @@ sub handleFeed {
 			unshift @$items, $#{$stationMenu} ? {
 				type => 'outline',
 				name => getString($client, $_->{name}),
+				play => $_->{flac_interactive} || $_->{flac} || $_->{aac_320} || $_->{aac_128} || $_->{mp3} || $_->{aac},
 				items => $stationMenu
 			} : $stationMenu->[0];
 		}
