@@ -60,6 +60,16 @@ my $stations = { map {
 		mp3 => 'http://stream.radioparadise.com/eclectic-192'
 	},
 	{
+		tag => 'beyond',
+		id => 5,
+		name => 'PLUGIN_RADIO_PARADISE_BEYOND',
+		flac_interactive => 'radioparadise://4-5.flac',
+		flac => 'http://stream.radioparadise.com/beyond-flac',
+		aac_320 => 'http://stream.radioparadise.com/beyond-320',
+		aac_128 => 'http://stream.radioparadise.com/beyond-128',
+		mp3 => 'http://stream.radioparadise.com/beyond-192'
+	},
+	{
 		tag => 'serenity',
 		id => 42,
 		name => 'PLUGIN_RADIO_PARADISE_SERENITY',
@@ -125,6 +135,8 @@ sub _gotChannelList {
 
 		foreach (@$stationInfo) {
 			next unless ref $_ and ref $_ eq 'HASH';
+
+			$_->{stream_name} .= '-mix' if $stations->{$_->{stream_name} . '-mix'};
 
 			if ($_->{chan} && $_->{stream_name} && $_->{title}) {
 				my $station = $stations->{$_->{stream_name}} ||= {
