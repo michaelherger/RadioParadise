@@ -15,7 +15,7 @@ use Slim::Utils::Log;
 use constant SOURCE_ID => 21;
 use constant BASE_URL => 'http://api.radioparadise.com';
 use constant AUTH_URL => BASE_URL . '/api/auth';
-use constant CHANNEL_LIST_URL => BASE_URL . '/api/list_chan?C_user_id=%s&ver=2&source=' . SOURCE_ID;
+use constant CHANNEL_LIST_URL => BASE_URL . '/api/list_chan?C_user_id=%s&ver=3&source=' . SOURCE_ID;
 use constant GAPLESS_URL => BASE_URL . '/api/gapless';
 use constant UPDATE_HISTORY_URL => BASE_URL . '/api/update_history';
 use constant UPDATE_PAUSE_URL => BASE_URL . '/api/update_pause';

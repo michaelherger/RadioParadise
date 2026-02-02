@@ -12,7 +12,6 @@ use Plugins::RadioParadise::API;
 use Plugins::RadioParadise::MetadataProvider;
 
 use constant REFRESH_INTERVAL => 86400;
-use constant CHANNEL_LIST_URL => 'http://api.radioparadise.com/api/list_chan';
 use constant STATION_URL_LIST_URL => 'http://img.radioparadise.com/content/prod/listen/streams/template.html';
 
 my $log = logger('plugin.radioparadise');
@@ -73,7 +72,7 @@ my $stations = { map {
 		tag => 'serenity',
 		id => 42,
 		name => 'PLUGIN_RADIO_PARADISE_SERENITY',
-		flac_interactive => 'radioparadise://4-42.flac',
+		# flac_interactive => 'radioparadise://4-42.flac',
 		# flac => 'http://stream.radioparadise.com/serenity-flac',
 		# aac_320 => 'http://stream.radioparadise.com/serenity-320',
 		# aac_128 => 'http://stream.radioparadise.com/serenity-128',
@@ -145,7 +144,13 @@ sub _gotChannelList {
 
 				$station->{name} ||= $_->{title};
 				$station->{id} = $_->{chan};
-				$station->{flac_interactive} = sprintf('radioparadise://4-%s.flac', $_->{chan});
+				$station->{aac} ||= $_->{default_stream_url} if $_->{default_stream_url};
+				if (_canInteractiveFlac($_)) {
+					$station->{flac_interactive} = sprintf('radioparadise://4-%s.flac', $_->{chan});
+				}
+				else {
+					delete $station->{flac_interactive};
+				}
 			}
 		}
 
@@ -153,6 +158,11 @@ sub _gotChannelList {
 	}
 
 	$cb->();
+}
+
+sub _canInteractiveFlac {
+	my ($station) = @_;
+	return $station->{player_type} && $station->{player_type} eq 'gapless-playlist';
 }
 
 sub _getStationURLList {
