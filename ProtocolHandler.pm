@@ -25,7 +25,12 @@ sub new {
 	my $song      = $args->{song};
 	my $streamUrl = $song->streamUrl() || return;
 
-	main::DEBUGLOG && $log->debug( 'Remote streaming Radio Paradise track: ' . $streamUrl );
+	if ($streamUrl && $args->{redir} && $args->{redir} eq $streamUrl) {
+		$log->error("We seem to be in a redirection loop for url: $streamUrl");
+		return;
+	}
+
+	main::INFOLOG && $log->info( 'Remote streaming Radio Paradise track: ' . $streamUrl );
 
 	return $class->SUPER::new( {
 		url     => $streamUrl,
@@ -97,7 +102,7 @@ sub getNextTrack {
 				my $desiredEventId = $songdata->{event_id} || 0;
 
 				if ($desiredEventId - $currentEventId < -3) {
-					$log->error("We've tried to play a song from the past - reset position: $desiredEventId < $currentEventId");
+					$log->warn("We've tried to play a song from the past - reset position: $desiredEventId < $currentEventId");
 
 					$song->streamUrl(sprintf('radioparadise://4-%s.flac', $channel));
 					$class->getNextTrack($song, $successCb, $errorCb);
