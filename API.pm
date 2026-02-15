@@ -100,7 +100,7 @@ sub getNextTrack {
 			} @{$trackInfo->{songs} || []};
 
 			if (scalar @announcements) {
-				$log->warn("Found announcement URLs: " . join(', ', @announcements));
+				main::INFOLOG && $log->is_info && $log->info("Found announcement URLs: " . join(', ', @announcements));
 
 				Async::Util::amap(
 					inputs => \@announcements,
@@ -118,7 +118,10 @@ sub getNextTrack {
 
 						my %urlFailed = map { $_ => 1 } grep { $_ } @$results;
 
-						$trackInfo->{songs} = [ grep { !$_->{gapless_url} || !$urlFailed{$_->{gapless_url}} } @{$trackInfo->{songs} || []} ];
+						if (keys %urlFailed) {
+							$log->warn("Announcement URLs that failed: " . join(', ', keys %urlFailed));
+							$trackInfo->{songs} = [ grep { !$_->{gapless_url} || !$urlFailed{$_->{gapless_url}} } @{$trackInfo->{songs} || []} ];
+						}
 
 						$cb->($trackInfo);
 					}
