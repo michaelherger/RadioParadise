@@ -144,6 +144,8 @@ sub getNextTrack {
 sub getMetadataFor {
 	my ( $class, $client, $url, undef, $song ) = @_;
 
+	return {} unless $client;
+
 	$client = $client->master;
 	$song ||= $client->playingSong();
 	return {} unless $song;
