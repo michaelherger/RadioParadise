@@ -85,8 +85,51 @@ sub getNextTrack {
 	_get(
 		sub {
 			my $trackInfo = shift;
+
+			main::INFOLOG && $log->is_info && $log->info(Data::Dump::dump($trackInfo));
+
 			$imageBase ||= $trackInfo->{image_base};
 			$maxEventId{$channel} = $trackInfo->{max_gapless_event_id} if $trackInfo->{max_gapless_event_id};
+
+			my @announcements = map {
+				$_->{gapless_url};
+			} grep {
+				($_->{gapless_url} || '') =~ m{/dj/}
+				|| ($_->{title} || '') =~ /listener-?supported/i
+				|| ($_->{artist} || '') =~ /commercial-?free/i
+			} @{$trackInfo->{songs} || []};
+
+			if (scalar @announcements) {
+				main::INFOLOG && $log->is_info && $log->info("Found announcement URLs: " . join(', ', @announcements));
+
+				Async::Util::amap(
+					inputs => \@announcements,
+					action => sub {
+						my ($announcementUrl, $acb) = @_;
+
+						Slim::Networking::SimpleAsyncHTTP->new(
+							sub { $_[0]->code < 400 ? $acb->() : $acb->($announcementUrl); },
+							sub { $acb->($announcementUrl); },
+							{ cache => 0 }
+						)->head($announcementUrl);
+					},
+					cb => sub {
+						my ($results) = @_;
+
+						my %urlFailed = map { $_ => 1 } grep { $_ } @$results;
+
+						if (keys %urlFailed) {
+							$log->warn("Announcement URLs that failed: " . join(', ', keys %urlFailed));
+							$trackInfo->{songs} = [ grep { !$_->{gapless_url} || !$urlFailed{$_->{gapless_url}} } @{$trackInfo->{songs} || []} ];
+						}
+
+						$cb->($trackInfo);
+					}
+				);
+
+				return;
+			}
+
 			$cb->($trackInfo);
 		},
 		GAPLESS_URL,
