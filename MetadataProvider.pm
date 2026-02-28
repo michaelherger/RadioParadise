@@ -200,7 +200,7 @@ sub _gotMetadataError {
 sub _fixHDMetadata {
 	my ($client, $url, $meta) = @_;
 
-	if ( $client->pluginData('rpHD') && (my $hdImage = $cache->get( "remote_image_$url")) ) {
+	if ( defined $client && $client->pluginData('rpHD') && (my $hdImage = $cache->get( "remote_image_$url")) ) {
 		main::DEBUGLOG && $log->is_debug && $log->debug("Replacing artwork with HD image: $hdImage");
 		$meta = Storable::dclone($meta);
 		$meta->{cover} = $meta->{icon} = $hdImage;
