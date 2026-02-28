@@ -144,10 +144,11 @@ sub getNextTrack {
 sub getMetadataFor {
 	my ( $class, $client, $url, undef, $song ) = @_;
 
-	return {} unless $client;
+	if ($client) {
+		$client = $client->master;
+		$song ||= $client->playingSong();
+	}
 
-	$client = $client->master;
-	$song ||= $client->playingSong();
 	return {} unless $song;
 
 	my $icon = $class->getIcon();
