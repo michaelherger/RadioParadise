@@ -173,7 +173,7 @@ sub handleFeed {
 
 		my %stations;
 		foreach (reverse @{Plugins::RadioParadise::Stations::getChannelList()}) {
-			my $prefix = getString($client, $_->{name}) . ' - ';
+			my $prefix = Slim::Utils::Strings::getString($_->{name}) . ' - ';
 
 			my $stationMenu = [];
 
@@ -218,7 +218,7 @@ sub handleFeed {
 
 			unshift @$items, $#{$stationMenu} ? {
 				type => 'outline',
-				name => getString($client, $_->{name}),
+				name => Slim::Utils::Strings::getString($_->{name}),
 				play => $_->{flac_interactive} || $_->{flac} || $_->{aac_320} || $_->{aac_128} || $_->{mp3} || $_->{aac},
 				items => $stationMenu
 			} : $stationMenu->[0];
@@ -234,13 +234,6 @@ sub handleFeed {
 	$cb->({
 		items => $items,
 	});
-}
-
-sub getString {
-	my ($client, $stringOrToken) = @_;
-
-	return $stringOrToken if $stringOrToken =~ /(?:[a-z]|\s)/;
-	return $client->string($stringOrToken);
 }
 
 sub nowPlayingInfoMenu {
