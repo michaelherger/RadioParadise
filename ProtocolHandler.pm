@@ -25,9 +25,15 @@ sub new {
 	my $song      = $args->{song};
 	my $streamUrl = $song->streamUrl() || return;
 
-	if ($streamUrl && $args->{redir} && $args->{redir} eq $streamUrl) {
-		$log->error("We seem to be in a redirection loop for url: $streamUrl");
-		return;
+	if ($args->{url} && $args->{redir}) {
+		if ($args->{redir} ne $args->{url}) {
+			$log->info("Redirecting url: $args->{redir} -> $args->{url}");
+			$streamUrl = $args->{url};
+		}
+		elsif ($args->{redir} eq $args->{url}) {
+			$log->error("We seem to be in a redirection loop for url: $streamUrl");
+			$streamUrl = $args->{redir};
+		}
 	}
 
 	main::INFOLOG && $log->info( 'Remote streaming Radio Paradise track: ' . $streamUrl );
