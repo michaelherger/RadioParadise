@@ -2,7 +2,7 @@ package Plugins::RadioParadise::Favorites;
 
 use strict;
 
-use JSON::XS::VersionOneAndTwo;
+use JSON::XS qw(decode_json);
 use List::Util qw(min);
 use URI::Escape qw(uri_escape_utf8);
 
@@ -69,7 +69,7 @@ sub rate {
 	Slim::Networking::SimpleAsyncHTTP->new(
 		sub {
 			my $http = shift;
-			my $result = eval { from_json($http->content) };
+			my $result = eval { decode_json($http->content) };
 
 			$@ && $log->error($@);
 

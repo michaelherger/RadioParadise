@@ -2,7 +2,7 @@ package Plugins::RadioParadise::MetadataProvider;
 
 use strict;
 
-use JSON::XS::VersionOneAndTwo;
+use JSON::XS qw(decode_json);
 
 use Slim::Formats::RemoteMetadata;
 use Slim::Music::Info;
@@ -136,7 +136,7 @@ sub _gotMetadata {
 	my $client = $http->params('client');
 	my $url    = $http->params('url');
 
-	my $meta = eval { from_json($http->content) };
+	my $meta = eval { decode_json($http->content) };
 
 	if ( $@ ) {
 		$http->error( $@ );

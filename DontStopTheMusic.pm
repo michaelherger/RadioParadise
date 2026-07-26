@@ -4,7 +4,7 @@ use strict;
 
 use base qw(Plugins::LastMix::Services::Base);
 
-use JSON::XS::VersionOneAndTwo;
+use JSON::XS qw(decode_json);
 use List::Util qw(min);
 
 use Slim::Utils::Log;
@@ -83,7 +83,7 @@ sub getFavorites {
 	Slim::Networking::SimpleAsyncHTTP->new(
 		sub {
 			my ($http) = @_;
-			my $result = eval { from_json($http->content) } || {};
+			my $result = eval { decode_json($http->content) } || {};
 
 			$cb->($result->{songs} || [], $result->{num_songs});
 		},

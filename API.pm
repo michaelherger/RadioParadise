@@ -3,7 +3,7 @@ package Plugins::RadioParadise::API;
 use strict;
 
 use Digest::MD5 qw(md5_hex);
-use JSON::XS::VersionOneAndTwo;
+use JSON::XS qw(decode_json);
 use URI ();
 use URI::QueryParam;
 
@@ -238,7 +238,7 @@ sub _get {
 		sub {
 			my $http = shift;
 
-			my $responseBody = eval { from_json($http->content) };
+			my $responseBody = eval { decode_json($http->content) };
 
 			if ($@ && $http->content) {
 				$log->error("Failed to parse result for $url: $@");
