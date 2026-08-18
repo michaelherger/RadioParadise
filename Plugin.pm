@@ -154,7 +154,10 @@ sub postinitPlugin { if ($canLossless) {
 } }
 
 sub getDisplayName { 'PLUGIN_RADIO_PARADISE' }
-sub playerMenu {}
+
+sub playerMenu {
+	$prefs->get('showInRadioMenu') ? 'RADIO' : undef;
+}
 
 sub handleFeed {
 	my ($client, $cb, $args) = @_;
