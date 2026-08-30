@@ -147,6 +147,32 @@ sub getNextTrack {
 	});
 }
 
+sub parseHeaders {
+	my ( $self, @headers ) = @_;
+
+	my $client = $self->client->master;
+
+	if (my $song = $client->playingSong()) {
+		my $length;
+		foreach my $header (@headers) {
+			if ( $header =~ /^Content-Length:\s*(\d+)/i ) {
+				$length = $1;
+				last;
+			}
+		}
+
+		my $meta = $self->getMetadataFor($self->client, $self->url);
+		if ( $length && $meta->{duration} ) {
+			$song->bitrate(int($length * 8 / $meta->{duration}));
+		}
+		else {
+			$song->bitrate(0);
+		}
+	}
+
+	return $self->SUPER::parseHeaders( @headers );
+}
+
 sub getMetadataFor {
 	my ( $class, $client, $url, undef, $song ) = @_;
 
@@ -160,8 +186,7 @@ sub getMetadataFor {
 	my $icon = $class->getIcon();
 	my $songdata = $class->getBlockData($song);
 
-	# TODO - review?
-	my $bitrate = int($song->bitrate ? ($song->bitrate / 1024) : 850) . 'k VBR FLAC';
+	my $bitrate = Slim::Schema::Track->buildPrettyBitRate($song->bitrate || 850_000);
 
 	if ($songdata) {
 		my $meta = {

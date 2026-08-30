@@ -155,7 +155,8 @@ sub _gotMetadata {
 	$meta->{cover} ||= ICON;
 
 	if ($url =~ /\bflac\b/) {
-		$meta->{bitrate} = '850k VBR';
+		my $song = $client->playingSong() if $client;
+		$meta->{bitrate} = Slim::Schema::Track->buildPrettyBitRate(($song && $song->bitrate) || 850_000);
 		$meta->{type} = 'FLAC';
 	}
 
