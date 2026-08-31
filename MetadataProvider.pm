@@ -155,9 +155,17 @@ sub _gotMetadata {
 	$meta->{cover} ||= ICON;
 
 	if ($url =~ /\bflac\b/) {
+		my ($bitrate, $format);
 		my $song = $client->playingSong() if $client;
-		$meta->{bitrate} = Slim::Schema::Track->buildPrettyBitRate(($song && $song->bitrate) || 850_000);
-		$meta->{type} = 'FLAC';
+
+		if ($song && $song->track && lc($song->track->content_type) eq 'ogg') {
+			$format = 'ogf';
+			Slim::Music::Info::setContentType( $url, $format );
+		}
+
+		$bitrate = $song->bitrate if $song;
+
+		$meta->{bitrate} = Slim::Schema::Track->buildPrettyBitRate($bitrate || 850_000, undef, $format || 'flac');
 	}
 
 	$cache->set( "remote_image_$url", $meta->{cover}, 3600 );
