@@ -161,11 +161,13 @@ sub _gotMetadata {
 		if ($song && $song->track && lc($song->track->content_type) eq 'ogg') {
 			$format = 'ogf';
 			Slim::Music::Info::setContentType( $url, $format );
+		} else {
+			$format = 'flc';
 		}
 
+		$meta->{type} = $format;
 		$bitrate = $song->bitrate if $song;
-
-		$meta->{bitrate} = Slim::Schema::Track->buildPrettyBitRate($bitrate || 850_000, undef, $format || 'flac');
+		$meta->{bitrate} = int($bitrate ? ($bitrate / 1024) : 850) . Slim::Utils::Strings::string('KBPS');
 	}
 
 	$cache->set( "remote_image_$url", $meta->{cover}, 3600 );
@@ -226,8 +228,8 @@ sub defaultMeta {
 		icon  => ICON,
 		cover => ICON,
 		type  => cstring($client, 'RADIO'),
-		bitrate => 850_000,
-		type  => 'FLAC'
+		bitrate => '850' . Slim::Utils::Strings::string('KBPS'),
+		type  => 'flc'
 	});
 }
 
