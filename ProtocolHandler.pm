@@ -186,7 +186,9 @@ sub getMetadataFor {
 	my $icon = $class->getIcon();
 	my $songdata = $class->getBlockData($song);
 
-	my $bitrate = Slim::Schema::Track->buildPrettyBitRate($song->bitrate || 850_000);
+	my $bitrate = int($song->bitrate ? ($song->bitrate / 1024) : 850) . Slim::Utils::Strings::string('KBPS');
+	my $samplesize = $song->samplesize || 16 ;
+	my $samplerate = $song->samplerate || 44100 ;	
 
 	if ($songdata) {
 		my $meta = {
@@ -197,7 +199,10 @@ sub getMetadataFor {
 			duration => int($songdata->{duration} / 1000),
 			secs   => int($songdata->{duration} / 1000),
 			cover  => Plugins::RadioParadise::API->getImageUrl($songdata),
-			bitrate=> $bitrate,
+			type   => 'flc',
+			bitrate => $bitrate,
+			samplesize => $samplesize,
+			samplerate => $samplerate,
 			slideshow => $songdata->{slideshow} || [],
 			song_id=> $songdata->{song_id},
 			extid  => 'radioparadise:' . $songdata->{song_id},
