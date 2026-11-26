@@ -79,6 +79,16 @@ my $stations = { map {
 		aac => 'http://stream.radioparadise.com/serenity',
 		# mp3 => 'http://stream.radioparadise.com/serenity-192'
 	},
+	{
+		tag => 'parasoul',
+		id => 13,
+		name => 'PLUGIN_RADIO_PARADISE_PARASOUL',
+		flac_interactive => 'radioparadise://4-13.flac',
+		flac => 'http://stream.radioparadise.com/parasoul-flac',
+		aac_320 => 'http://stream.radioparadise.com/parasoul-320',
+		aac_128 => 'http://stream.radioparadise.com/parasoul-128',
+		mp3 => 'http://stream.radioparadise.com/parasoul-192'
+	},
 ) };
 
 sub init {
